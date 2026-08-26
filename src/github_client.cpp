@@ -1,13 +1,18 @@
 #include "ghinfo/github_client.hpp"
 
 #include <curl/curl.h>
+#include <nlohmann/json.hpp>
 
 #include <algorithm>
 #include <cctype>
+#include <cstdint>
+#include <iterator>
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <string_view>
 #include <utility>
+#include <vector>
 
 namespace ghinfo {
 namespace {
@@ -30,6 +35,12 @@ struct CurlHeadersDeleter {
 
 using CurlHandle = std::unique_ptr<CURL, CurlHandleDeleter>;
 using CurlHeaders = std::unique_ptr<curl_slist, CurlHeadersDeleter>;
+using Json = nlohmann::json;
+
+class PayloadShapeError final : public std::runtime_error {
+  public:
+    explicit PayloadShapeError(std::string message) : std::runtime_error(std::move(message)) {}
+};
 
 void ensure_curl_initialized() {
     static std::once_flag once;
@@ -112,6 +123,97 @@ void check_setopt(CURLcode result, std::string_view operation) {
         throw GitHubRequestError(GitHubErrorKind::transport, std::nullopt,
                                  "failed to configure GitHub request: " + std::string{operation});
     }
+}
+
+Json parse_json(std::string_view body) {
+    try {
+        return Json::parse(body);
+    } catch (const Json::exception&) {
+        throw GitHubRequestError(GitHubErrorKind::malformed_json, std::nullopt,
+                                 "GitHub returned malformed JSON");
+    }
+}
+
+template <typename T> T required_field(const Json& object, std::string_view name) {
+    const auto key = std::string{name};
+    if (!object.is_object() || !object.contains(key) || object.at(key).is_null()) {
+        throw PayloadShapeError("missing required field " + key);
+    }
+
+    try {
+        return object.at(key).get<T>();
+    } catch (const Json::exception&) {
+        throw PayloadShapeError("invalid field " + key);
+    }
+}
+
+std::string optional_string(const Json& object, std::string_view name) {
+    const auto key = std::string{name};
+    if (!object.is_object() || !object.contains(key) || object.at(key).is_null()) {
+        return {};
+    }
+    if (!object.at(key).is_string()) {
+        throw PayloadShapeError("invalid field " + key);
+    }
+    return object.at(key).get<std::string>();
+}
+
+std::string author_name(const Json& object) {
+    if (!object.is_object() || !object.contains("user") || object.at("user").is_null()) {
+        return "unknown";
+    }
+    const auto login = optional_string(object.at("user"), "login");
+    if (login.empty()) {
+        throw PayloadShapeError("invalid user field");
+    }
+    return login;
+}
+
+bool has_next_link(const GitHubResponse& response) {
+    const auto link = response.header("link");
+    if (!link.has_value()) {
+        return false;
+    }
+    return link->find("rel=\"next\"") != std::string::npos ||
+           link->find("rel=next") != std::string::npos;
+}
+
+std::vector<Issue> parse_issue_page(const Json& payload, const RepositoryRef& repository) {
+    if (!payload.is_array()) {
+        throw PayloadShapeError("issues payload must be an array");
+    }
+
+    std::vector<Issue> issues;
+    issues.reserve(payload.size());
+    for (const auto& entry : payload) {
+        if (!entry.is_object()) {
+            throw PayloadShapeError("issue entry must be an object");
+        }
+        if (entry.contains("pull_request")) {
+            continue;
+        }
+
+        Issue issue;
+        issue.id = required_field<std::uint64_t>(entry, "id");
+        issue.number = required_field<std::uint64_t>(entry, "number");
+        issue.repository = repository.full_name();
+        issue.title = required_field<std::string>(entry, "title");
+        issue.author = author_name(entry);
+        issue.created_at = required_field<std::string>(entry, "created_at");
+        issue.updated_at = required_field<std::string>(entry, "updated_at");
+        issue.url = required_field<std::string>(entry, "html_url");
+
+        const auto& labels = entry.at("labels");
+        if (!labels.is_array()) {
+            throw PayloadShapeError("issue labels must be an array");
+        }
+        issue.labels.reserve(labels.size());
+        for (const auto& label : labels) {
+            issue.labels.push_back(required_field<std::string>(label, "name"));
+        }
+        issues.push_back(std::move(issue));
+    }
+    return issues;
 }
 
 } // namespace
@@ -275,6 +377,37 @@ GitHubResponse GitHubClient::get(std::string_view path,
         }
     }
     return response;
+}
+
+std::vector<Issue> GitHubClient::fetch_open_issues(const RepositoryRef& repository) const {
+    constexpr std::size_t page_size = 100;
+    constexpr std::size_t max_pages = 1000;
+    std::vector<Issue> issues;
+
+    for (std::size_t page = 1; page <= max_pages; ++page) {
+        const auto path = "/repos/" + repository.full_name() +
+                          "/issues?state=open&per_page=" + std::to_string(page_size) +
+                          "&page=" + std::to_string(page);
+        const auto response = get(path);
+        const auto payload = parse_json(response.body);
+
+        try {
+            auto page_issues = parse_issue_page(payload, repository);
+            issues.insert(issues.end(), std::make_move_iterator(page_issues.begin()),
+                          std::make_move_iterator(page_issues.end()));
+        } catch (const PayloadShapeError& error) {
+            throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                     "GitHub issues payload has invalid shape: " +
+                                         std::string{error.what()});
+        }
+
+        if (!has_next_link(response)) {
+            return issues;
+        }
+    }
+
+    throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                             "GitHub issues pagination exceeded the safety limit");
 }
 
 } // namespace ghinfo

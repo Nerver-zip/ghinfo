@@ -1,5 +1,8 @@
 #pragma once
 
+#include "ghinfo/config.hpp"
+#include "ghinfo/model.hpp"
+
 #include <chrono>
 #include <map>
 #include <mutex>
@@ -14,6 +17,8 @@ namespace ghinfo {
 enum class GitHubErrorKind {
     transport,
     http,
+    malformed_json,
+    semantic,
 };
 
 class GitHubRequestError : public std::runtime_error {
@@ -52,6 +57,7 @@ class GitHubClient {
 
     [[nodiscard]] GitHubResponse get(std::string_view path,
                                      const GitHubRequestOptions& options = {}) const;
+    [[nodiscard]] std::vector<Issue> fetch_open_issues(const RepositoryRef& repository) const;
 
     static constexpr std::string_view api_base{"https://api.github.com"};
     static constexpr std::string_view api_version{"2026-03-10"};

@@ -6,12 +6,21 @@
 
 #include <atomic>
 #include <chrono>
+#include <fstream>
 #include <stdexcept>
 #include <string>
 #include <string_view>
 #include <thread>
 
 namespace {
+
+std::string read_fixture(const std::string& relative_path) {
+    std::ifstream file{std::string{GHINFO_SOURCE_DIR} + "/" + relative_path};
+    if (!file) {
+        throw std::runtime_error("failed to read test fixture");
+    }
+    return {std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
+}
 
 class LocalHttpServer {
   public:
@@ -204,6 +213,66 @@ TEST(GitHubClientTest, RejectsNotModifiedResponseWithoutCachedBody) {
         EXPECT_EQ(error.status_code().value(), 304);
         EXPECT_EQ(std::string{error.what()},
                   "GitHub returned HTTP 304 without a cached response for /uncached");
+    }
+}
+
+TEST(GitHubClientTest, FetchesAndNormalizesPaginatedOpenIssues) {
+    LocalHttpServer server;
+    const auto first_page = read_fixture("tests/fixtures/github/issues.json");
+    std::atomic<int> request_count{0};
+    server.server().Get("/repos/owner/repo/issues", [&](const httplib::Request& request,
+                                                        httplib::Response& response) {
+        ++request_count;
+        const auto page = request.get_param_value("page");
+        if (page == "1") {
+            response.set_header("Link", "<http://example.test/page=2>; rel=\"next\"");
+            response.set_content(first_page, "application/json");
+            return;
+        }
+        if (page == "2") {
+            response.set_content("[]", "application/json");
+            return;
+        }
+        response.status = 400;
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto issues = client.fetch_open_issues(ghinfo::parse_repository_ref("owner/repo"));
+
+    ASSERT_EQ(request_count.load(), 2);
+    ASSERT_EQ(issues.size(), 1U);
+    EXPECT_EQ(issues.front().id, 1001U);
+    EXPECT_EQ(issues.front().number, 42U);
+    EXPECT_EQ(issues.front().repository, "owner/repo");
+    EXPECT_EQ(issues.front().title, "Example issue");
+    EXPECT_EQ(issues.front().author, "octocat");
+    ASSERT_EQ(issues.front().labels.size(), 1U);
+    EXPECT_EQ(issues.front().labels.front(), "bug");
+    EXPECT_EQ(issues.front().url, "https://github.com/owner/repo/issues/42");
+}
+
+TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
+    LocalHttpServer server;
+    server.server().Get("/repos/owner/repo/issues",
+                        [](const httplib::Request&, httplib::Response& response) {
+                            response.set_content("not-json", "application/json");
+                        });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    try {
+        (void)client.fetch_open_issues(ghinfo::parse_repository_ref("owner/repo"));
+        FAIL() << "expected malformed JSON error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::malformed_json);
+        EXPECT_FALSE(error.status_code().has_value());
     }
 }
 
