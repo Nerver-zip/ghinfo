@@ -1,0 +1,16 @@
+Checks: >
+  -*,
+  bugprone-*,
+  clang-analyzer-*,
+  cppcoreguidelines-*,
+  modernize-*,
+  performance-*,
+  portability-*,
+  readability-*
+WarningsAsErrors: ''
+HeaderFilterRegex: '^(include|src|tests)/'
+CheckOptions:
+  - key: readability-identifier-length.IgnoredLoopCounterNames
+    value: 'i;j;k'
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
+    value: '0;1;2;8;10;20;60;80;443;8080'

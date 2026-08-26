@@ -1,0 +1,34 @@
+# Build outputs
+/build/
+/out/
+cmake-build-*/
+compile_commands.json
+
+# Local environment / secrets
+.env
+.env.*
+!.env.example
+
+# IDE/editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Coverage / profiling
+coverage/
+*.gcda
+*.gcno
+*.profraw
+*.profdata
+
+# Sanitizers / crash output
+core
+core.*
+*.stackdump
+
+# Generated/local runtime state
+*.log
+ghinfo-snapshot.json
