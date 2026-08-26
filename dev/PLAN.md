@@ -2,34 +2,36 @@
 
 ## Current milestone
 
-**MVP-007 — Workflow runs**
+**MVP-008 — Workflow jobs**
 
 Target commit:
 
 ```text
-feat(github): fetch workflow runs
+feat(github): fetch relevant workflow jobs
 ```
 
 ## Goal
 
-Fetch a bounded recent workflow-run history per repository and normalize
-status, conclusion, branch, commit, event, timestamps, identifiers, and URL.
+Fetch normalized job details only for retained workflow runs whose current
+state is useful to inspect, following pagination without allowing historical
+growth outside the selected runs.
 
 ## Acceptance criteria
 
-- Requests use the repository Actions workflow-runs endpoint with an explicit
-  `per_page` equal to the configured history bound.
-- No more than the requested history bound is returned or retained.
-- Known statuses and conclusions serialize through explicit domain enums;
-  upstream values outside the known set become `unknown`.
-- Null conclusions remain absent rather than becoming a false success/failure.
-- IDs are parsed as 64-bit values and timestamps/URLs are preserved.
+- Queued/running runs and completed runs without a successful, skipped, or
+  neutral conclusion are eligible for job detail.
+- Completed successful, skipped, and neutral runs do not trigger a jobs request.
+- Jobs are fetched from the run-specific Actions jobs endpoint with bounded
+  pagination.
+- Job IDs and run IDs are parsed as 64-bit values; status/conclusion enums and
+  optional timestamps are normalized explicitly.
 - Invalid JSON and invalid payload shapes are explicit non-transport errors.
-- Tests use the checked-in runs fixture and a local HTTP response.
+- Tests use the checked-in jobs fixture, local paginated responses, and verify
+  irrelevant runs make no request.
 
 ## Non-goals
 
-- workflow jobs;
+- snapshot construction;
 - polling, retries, and backoff;
 - public data endpoints.
 
@@ -44,6 +46,7 @@ status, conclusion, branch, commit, event, timestamps, identifiers, and URL.
 
 - `.agents/skills/modern-cpp/SKILL.md`
 - `.agents/skills/github-rest/SKILL.md`
+- `.agents/skills/polling/SKILL.md`
 - `.agents/skills/cpp-testing/SKILL.md`
 - `.agents/skills/cpp-code-review/SKILL.md`
 

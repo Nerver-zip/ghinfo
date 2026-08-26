@@ -333,6 +333,44 @@ std::vector<WorkflowRun> parse_workflow_run_page(const Json& payload,
     return runs;
 }
 
+std::vector<WorkflowJob> parse_workflow_job_page(const Json& payload,
+                                                 const RepositoryRef& repository) {
+    if (!payload.is_object() || !payload.contains("jobs") || !payload.at("jobs").is_array()) {
+        throw PayloadShapeError("workflow jobs payload must contain an array");
+    }
+
+    const auto& entries = payload.at("jobs");
+    std::vector<WorkflowJob> jobs;
+    jobs.reserve(entries.size());
+    for (const auto& entry : entries) {
+        if (!entry.is_object()) {
+            throw PayloadShapeError("workflow job entry must be an object");
+        }
+
+        WorkflowJob job;
+        job.id = required_field<std::uint64_t>(entry, "id");
+        job.run_id = required_field<std::uint64_t>(entry, "run_id");
+        job.repository = repository.full_name();
+        job.name = required_field<std::string>(entry, "name");
+        job.status = parse_run_status(required_field<std::string>(entry, "status"));
+        job.conclusion = optional_conclusion(entry);
+        job.started_at = optional_string(entry, "started_at");
+        job.completed_at = optional_string(entry, "completed_at");
+        job.url = required_field<std::string>(entry, "html_url");
+        jobs.push_back(std::move(job));
+    }
+    return jobs;
+}
+
+bool needs_job_details(const WorkflowRun& run) {
+    if (run.status != RunStatus::completed || !run.conclusion.has_value()) {
+        return true;
+    }
+    return run.conclusion.value() != Conclusion::success &&
+           run.conclusion.value() != Conclusion::skipped &&
+           run.conclusion.value() != Conclusion::neutral;
+}
+
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
@@ -582,6 +620,42 @@ std::vector<WorkflowRun> GitHubClient::fetch_workflow_runs(const RepositoryRef& 
                                  "GitHub workflow runs payload has invalid shape: " +
                                      std::string{error.what()});
     }
+}
+
+std::vector<WorkflowJob> GitHubClient::fetch_relevant_workflow_jobs(const RepositoryRef& repository,
+                                                                    const WorkflowRun& run) const {
+    if (!needs_job_details(run)) {
+        return {};
+    }
+
+    constexpr std::size_t page_size = 100;
+    constexpr std::size_t max_pages = 1000;
+    std::vector<WorkflowJob> jobs;
+
+    for (std::size_t page = 1; page <= max_pages; ++page) {
+        const auto path = "/repos/" + repository.full_name() + "/actions/runs/" +
+                          std::to_string(run.id) + "/jobs?per_page=" + std::to_string(page_size) +
+                          "&page=" + std::to_string(page);
+        const auto response = get(path);
+        const auto payload = parse_json(response.body);
+
+        try {
+            auto page_jobs = parse_workflow_job_page(payload, repository);
+            jobs.insert(jobs.end(), std::make_move_iterator(page_jobs.begin()),
+                        std::make_move_iterator(page_jobs.end()));
+        } catch (const PayloadShapeError& error) {
+            throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                     "GitHub workflow jobs payload has invalid shape: " +
+                                         std::string{error.what()});
+        }
+
+        if (!has_next_link(response)) {
+            return jobs;
+        }
+    }
+
+    throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                             "GitHub workflow jobs pagination exceeded the safety limit");
 }
 
 } // namespace ghinfo
