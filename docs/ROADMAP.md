@@ -227,6 +227,10 @@ Acceptance:
 - README examples reflect actual output;
 - `v0.1.0` release.
 
+Status: CI sanitizer coverage and tag-triggered release automation are
+implemented. Publishing remains an explicit operator action after Docker
+build verification.
+
 ## Post-MVP candidates
 
 Only after usage demonstrates need:
