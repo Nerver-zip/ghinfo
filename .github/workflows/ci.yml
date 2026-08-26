@@ -1,0 +1,55 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gcc
+            cc: gcc
+            cxx: g++
+          - name: clang
+            cc: clang
+            cxx: clang++
+
+    name: ${{ matrix.name }}
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev clang-format
+          if [[ "${{ matrix.name }}" == "clang" ]]; then
+            sudo apt-get install -y clang
+          fi
+
+      - name: Configure
+        env:
+          CC: ${{ matrix.cc }}
+          CXX: ${{ matrix.cxx }}
+        run: cmake --preset dev
+
+      - name: Build
+        run: cmake --build --preset dev --parallel
+
+      - name: Test
+        run: ctest --preset dev --output-on-failure
+
+      - name: Format
+        run: ./scripts/check-format.sh
+
+      - name: Diff check
+        run: git diff --check

@@ -1,0 +1,24 @@
+services:
+  ghinfo:
+    build:
+      context: .
+    image: ghinfo:dev
+    restart: unless-stopped
+
+    environment:
+      GHINFO_GITHUB_TOKEN: ${GHINFO_GITHUB_TOKEN}
+      GHINFO_REPOSITORIES: ${GHINFO_REPOSITORIES}
+      GHINFO_POLL_INTERVAL_SECONDS: ${GHINFO_POLL_INTERVAL_SECONDS:-60}
+      GHINFO_BIND: 0.0.0.0
+      GHINFO_PORT: 8080
+      GHINFO_LOG_LEVEL: ${GHINFO_LOG_LEVEL:-info}
+      GHINFO_RUN_HISTORY: ${GHINFO_RUN_HISTORY:-20}
+
+    ports:
+      - "${GHINFO_HOST_PORT:-8080}:8080"
+
+    security_opt:
+      - no-new-privileges:true
+
+    cap_drop:
+      - ALL

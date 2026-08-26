@@ -1,0 +1,11 @@
+.git
+.github
+.agents
+build
+out
+cmake-build-*
+.env
+.env.*
+!.env.example
+*.log
+docs/daily

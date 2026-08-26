@@ -1,0 +1,94 @@
+#pragma once
+
+#include <cstdint>
+#include <optional>
+#include <string>
+#include <vector>
+
+namespace ghinfo {
+
+using GithubId = std::uint64_t;
+
+enum class RunStatus {
+    queued,
+    in_progress,
+    completed,
+    unknown,
+};
+
+enum class Conclusion {
+    success,
+    failure,
+    cancelled,
+    skipped,
+    timed_out,
+    neutral,
+    action_required,
+    unknown,
+};
+
+struct Repository {
+    GithubId id{};
+    std::string full_name;
+    bool is_private{};
+    std::string default_branch;
+    std::string url;
+    std::string updated_at;
+};
+
+struct Issue {
+    GithubId id{};
+    std::uint64_t number{};
+    std::string repository;
+    std::string title;
+    std::string author;
+    std::vector<std::string> labels;
+    std::string created_at;
+    std::string updated_at;
+    std::string url;
+};
+
+struct PullRequest {
+    GithubId id{};
+    std::uint64_t number{};
+    std::string repository;
+    std::string title;
+    std::string author;
+    bool draft{};
+    std::string head;
+    std::string base;
+    std::string created_at;
+    std::string updated_at;
+    std::string url;
+};
+
+struct WorkflowRun {
+    GithubId id{};
+    std::string repository;
+    std::string name;
+    RunStatus status{RunStatus::unknown};
+    std::optional<Conclusion> conclusion;
+    std::string branch;
+    std::string commit_sha;
+    std::string event;
+    std::string created_at;
+    std::string updated_at;
+    std::string url;
+};
+
+struct WorkflowJob {
+    GithubId id{};
+    GithubId run_id{};
+    std::string repository;
+    std::string name;
+    RunStatus status{RunStatus::unknown};
+    std::optional<Conclusion> conclusion;
+    std::optional<std::string> started_at;
+    std::optional<std::string> completed_at;
+    std::string url;
+};
+
+[[nodiscard]] std::string to_string(RunStatus status);
+[[nodiscard]] std::string to_string(Conclusion conclusion);
+
+} // namespace ghinfo
