@@ -1,60 +1,35 @@
 # Active Plan
 
-## Current milestone
+## Current state
 
-**MVP-016 — CI/release v0.1.0**
+The implementation milestones through MVP-016 are complete in the local
+checkout. Final goal closure is waiting only for external verification that
+cannot be performed in this environment.
 
-Target commit:
+## Final audit criteria
 
-```text
-ci: prepare v0.1.0 release
-```
+- All planned HTTP routes are exercised over a local server, including filters
+  and `400`/`404`/`503` responses.
+- Canonical dev and sanitizer validation remain green after the audit fix.
+- Every commit has post-commit status, whitespace, and relevant test evidence.
+- Docker image build and remote GitHub Actions/release state are verified on a
+  host with Docker and a configured GitHub remote.
+- No tag or remote release is created without those external gates.
 
-## Goal
+## Current external blockers
 
-Make CI exercise the sanitizer preset and provide auditable, tag-triggered
-release automation for the v0.1.0 MVP.
+- No Git remote is configured in this checkout, and `gh` is unauthenticated.
+- Docker CLI exists, but no daemon socket is available; `dockerd` requires
+  unavailable root privileges.
 
-## Acceptance criteria
-
-- Existing GCC/Clang build, test, format, and diff checks remain enabled.
-- A dedicated CI job builds and runs the ASan/UBSan preset.
-- A tag-triggered workflow creates GitHub release notes using the runner token.
-- Existing container workflow publishes GHCR images for version tags.
-- Release documentation lists validation, Docker verification, tag, and push
-  steps without embedding credentials.
-- No remote release is published from this local implementation session.
-
-## Non-goals
-
-- automatic GitHub release from every branch;
-- release binaries attached to GitHub;
-- credentials in repository files;
-- changing the public v1 API.
-
-## Expected files
-
-- `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
-- `docs/RELEASE.md`
-- `README.md`
-- `docs/ROADMAP.md`
-- `dev/COMMIT.md`
-- `dev/PLAN.md`
-
-## Required skills
-
-- `.agents/skills/ci-cd/SKILL.md`
-- `.agents/skills/docker/SKILL.md`
-- `.agents/skills/cpp-code-review/SKILL.md`
-
-## Validation
+## Required next evidence
 
 ```bash
-./scripts/validate.sh
-LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan
-LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure
-actionlint .github/workflows/*.yml
-docker compose config --quiet
-git diff --check
+docker build --tag ghinfo:local .
+git remote -v
+gh run list --limit 20
+git tag -a v0.1.0 -m "ghinfo v0.1.0"
+git push origin main v0.1.0
 ```
+
+The tag/push commands are intentionally not executed by this local run.
