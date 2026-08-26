@@ -2,7 +2,7 @@
 
 ## Objective
 
-Add live HTTP integration coverage for every planned read endpoint and record
+Complete live HTTP integration coverage for every planned endpoint and record
 the final MVP audit state.
 
 ## Files changed
@@ -15,8 +15,8 @@ the final MVP audit state.
 ## Acceptance criteria
 
 - A local `ApiServer` is started and queried over HTTP.
-- Summary, repositories, repository detail, issues, pulls, runs, jobs, and
-  activity routes are exercised.
+- Health, readiness, meta, summary, repositories, repository detail, issues,
+  pulls, runs, jobs, and activity routes are exercised.
 - Repository/status filtering and `400`/`404` behavior are exercised.
 - Successful route responses, normalized fields, and readiness-independent
   snapshot serving are verified without GitHub or a PAT.

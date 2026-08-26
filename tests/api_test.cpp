@@ -277,6 +277,17 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     EXPECT_FALSE(listen_finished.load(std::memory_order_acquire));
     ASSERT_EQ(health->status, 200);
     EXPECT_EQ(nlohmann::json::parse(health->body).at("status"), "ok");
+    EXPECT_EQ(health->get_header_value("Content-Type"), "application/json");
+
+    const auto readiness = client.Get("/readyz");
+    ASSERT_TRUE(readiness != nullptr);
+    EXPECT_EQ(readiness->status, 200);
+    EXPECT_TRUE(nlohmann::json::parse(readiness->body).at("ready").get<bool>());
+
+    const auto meta = client.Get("/v1/meta");
+    ASSERT_TRUE(meta != nullptr);
+    EXPECT_EQ(meta->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(meta->body).at("service"), "ghinfo");
 
     const auto summary = client.Get("/v1/summary");
     ASSERT_TRUE(summary != nullptr);
