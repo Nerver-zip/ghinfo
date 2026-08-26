@@ -2,57 +2,59 @@
 
 ## Current milestone
 
-**MVP-011 — Resilience and backoff**
+**MVP-012 — Core read API**
 
 Target commit:
 
 ```text
-feat(poller): preserve last-known-good state
+feat(api): expose normalized status resources
 ```
 
 ## Goal
 
-Track polling attempts and failures independently from immutable snapshots,
-preserve the last successful data, and schedule bounded retries using GitHub
-throttling hints when available.
+Expose stable, consumer-agnostic JSON for the complete immutable snapshot,
+with deterministic normalization, safe readiness behavior, and bounded
+resource filters.
 
 ## Acceptance criteria
 
-- A failed refresh never replaces or clears the last published snapshot.
-- Poll state records attempt time, stale state, consecutive failures, safe
-  failure category, and next retry metadata without raw errors/secrets.
-- Successful refresh resets stale/failure state and keeps generation monotonic.
-- Exponential retry delay is bounded; `Retry-After` takes precedence for 403/429
-  and the rate-limit reset hint is honored when present.
-- Stop tokens interrupt retry waits promptly.
-- Tests prove last-known-good preservation, stale transition, backoff bounds,
-  rate-limit hints, and reset after recovery.
+- `/v1/summary` reports deterministic repository, issue, pull request, and
+  workflow counts.
+- `/v1/repos` and `/v1/repos/{owner}/{repo}` expose normalized repository
+  state and retained related resources.
+- `/v1/issues`, `/v1/pulls`, `/v1/runs`, and `/v1/jobs` expose normalized arrays.
+- `repo` filtering works for issue, pull, run, and job resources; run status
+  and conclusion filters accept only documented enum strings.
+- Data endpoints return `503 snapshot_unavailable` before the first complete
+  poll and never call GitHub.
+- Public enum values are explicit strings; nullable upstream values remain
+  JSON `null`, not fabricated values.
+- Golden and focused API tests cover schema, normalization, filtering, and
+  unavailable state.
 
 ## Non-goals
 
-- public status serialization beyond existing endpoints;
-- resource filtering or activity endpoint;
-- container/release changes.
+- activity aggregation;
+- pagination of the local API;
+- authentication for consumers;
+- presentation-specific priority or UI fields.
 
 ## Expected files
 
-- `include/ghinfo/model.hpp`
-- `include/ghinfo/snapshot.hpp`
-- `include/ghinfo/github_client.hpp`
-- `src/github_client.cpp`
-- `include/ghinfo/poller.hpp`
-- `src/poller.cpp`
-- `tests/github_client_test.cpp`
-- `tests/poller_test.cpp`
-- `docs/ARCHITECTURE.md`
-- `docs/TESTING.md`
+- `include/ghinfo/server.hpp`
+- `src/server.cpp`
+- `tests/api_test.cpp`
+- `tests/golden/summary.json`
+- `docs/API.md`
+- `docs/ROADMAP.md`
+- `README.md`
 - `dev/COMMIT.md`
+- `dev/PLAN.md`
 
 ## Required skills
 
 - `.agents/skills/modern-cpp/SKILL.md`
-- `.agents/skills/github-rest/SKILL.md`
-- `.agents/skills/polling/SKILL.md`
+- `.agents/skills/api-contract/SKILL.md`
 - `.agents/skills/cpp-testing/SKILL.md`
 - `.agents/skills/cpp-code-review/SKILL.md`
 

@@ -1,6 +1,7 @@
 # HTTP API
 
-Status: scaffold contract. Only `/healthz`, `/readyz`, and `/v1/meta` exist initially.
+Status: MVP v1 contract. All endpoints below are read-only and serve the last
+complete in-memory snapshot.
 
 ## General rules
 
@@ -54,16 +55,34 @@ A stale last-known-good snapshot may still be considered ready.
 
 ## `GET /v1/meta`
 
-Scaffold response includes service/version and snapshot presence.
+Always returns `200`. Before the first successful poll it reports
+`snapshotAvailable: false`; the `poll` object is still available for safe
+operational state. Once a snapshot exists, generation, timestamp, and rate
+limit metadata are included.
 
-Planned shape:
+Example:
 
 ```json
 {
   "schemaVersion": 1,
   "service": "ghinfo",
   "version": "0.1.0",
-  "snapshotAvailable": false
+  "snapshotAvailable": true,
+  "generation": 7,
+  "generatedAt": "2026-08-26T20:45:31Z",
+  "rateLimit": {
+    "limit": 5000,
+    "remaining": 4999,
+    "resetAt": "2026-08-26T21:00:00Z"
+  },
+  "poll": {
+    "lastAttempt": "2026-08-26T20:45:31Z",
+    "lastSuccessful": "2026-08-26T20:45:31Z",
+    "stale": false,
+    "consecutiveFailures": 0,
+    "lastErrorKind": null,
+    "nextRetryAt": null
+  }
 }
 ```
 
@@ -75,12 +94,18 @@ Future additive fields may include uptime, generation, last poll metadata, and G
 
 Aggregated counts/state.
 
+Returns `503` with `{"schemaVersion":1,"error":"snapshot_unavailable"}`
+until the first complete poll. A stale last-known-good snapshot remains
+available with `stale: true`.
+
 Target example:
 
 ```json
 {
   "schemaVersion": 1,
+  "generation": 7,
   "generatedAt": "2026-08-26T20:45:31Z",
+  "stale": false,
   "repositories": { "total": 8 },
   "issues": { "open": 14 },
   "pullRequests": { "open": 4, "draft": 1 },
@@ -94,11 +119,14 @@ Target example:
 
 ### `GET /v1/repos`
 
-Normalized configured repositories.
+Normalized configured repositories. The response contains `schemaVersion`,
+`generation`, `generatedAt`, and a `repositories` array.
 
 ### `GET /v1/repos/{owner}/{repo}`
 
-One repository plus currently retained related state.
+One repository plus currently retained related state in `issues`,
+`pullRequests`, `workflowRuns`, and `jobs` arrays. An unknown repository is
+`404` with error `repository_not_found`.
 
 ### `GET /v1/issues`
 
@@ -126,9 +154,21 @@ Planned filters:
 ?conclusion=failure
 ```
 
+Supported `status` values are `queued`, `in_progress`, `completed`, and
+`unknown`. Supported `conclusion` values are `success`, `failure`,
+`cancelled`, `skipped`, `timed_out`, `neutral`, `action_required`, and
+`unknown`. Invalid filters return `400`.
+
 ### `GET /v1/jobs`
 
 Relevant jobs from retained workflow runs.
+
+Issues, pulls, runs, and jobs support the `repo=owner/name` filter. Resource
+arrays use normalized camelCase fields, explicit lowercase snake_case enum
+strings, and nullable conclusion/timestamp fields where GitHub may omit data.
+
+All data endpoints return `503 snapshot_unavailable` before the first complete
+poll. They never trigger GitHub requests.
 
 ### `GET /v1/activity`
 

@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "generation": 7,
+  "generatedAt": "2026-08-26T20:45:31Z",
+  "stale": false,
+  "repositories": { "total": 2 },
+  "issues": { "open": 2 },
+  "pullRequests": { "open": 1, "draft": 1 },
+  "actions": { "queued": 1, "running": 0, "failed": 1 }
+}

@@ -72,7 +72,7 @@ The scaffold already provides:
 The implementation currently covers authenticated transport, conditional
 requests, normalized GitHub resources, complete snapshot construction, and a
 resilient background poller through **MVP-011**. The next milestone is
-**MVP-012: public API resources and schema contracts**. See [`dev/PLAN.md`](dev/PLAN.md) and
+**MVP-013: objective activity aggregation**. See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Quick start

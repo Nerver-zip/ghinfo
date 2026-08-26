@@ -165,6 +165,9 @@ Acceptance:
 - basic repo/status/conclusion filters;
 - golden JSON tests.
 
+Status: delivered by the current implementation and its API golden/resource
+tests.
+
 ### MVP-013 — Activity view
 
 **Commit:** `feat(api): add aggregated activity endpoint`

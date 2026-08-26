@@ -2,42 +2,36 @@
 
 ## Objective
 
-Preserve the last-known-good snapshot and expose safe operational poll state
-for MVP-011.
+Expose the normalized snapshot through the stable v1 read API for MVP-012.
 
 ## Files changed
 
-- `include/ghinfo/github_client.hpp`
-- `include/ghinfo/model.hpp`
-- `include/ghinfo/poller.hpp`
-- `include/ghinfo/snapshot.hpp`
-- `src/github_client.cpp`
-- `src/poller.cpp`
+- `include/ghinfo/server.hpp`
 - `src/server.cpp`
-- `tests/poller_test.cpp`
-- `tests/snapshot_test.cpp`
+- `tests/api_test.cpp`
+- `tests/golden/summary.json`
+- `docs/API.md`
+- `docs/ROADMAP.md`
 - `README.md`
-- `docs/ARCHITECTURE.md`
-- `docs/TESTING.md`
 - `dev/COMMIT.md`
 - `dev/PLAN.md`
 
 ## Acceptance criteria
 
-- A failed refresh never replaces or clears the last published snapshot.
-- Poll state records attempt time, last success, stale status, consecutive
-  failures, safe error category, and next retry time.
-- A successful refresh resets failure state and advances snapshot generation.
-- Retry delay uses bounded exponential backoff, with `Retry-After` and rate
-  limit reset hints taking precedence when available.
-- Stop tokens interrupt normal and failure waits promptly.
-- Tests prove preservation, stale transition, recovery, bounded backoff, and
-  rate-limit hint precedence.
+- `/v1/summary` reports deterministic aggregate counts.
+- Repository, issue, pull request, workflow run, and workflow job resources
+  are exposed as normalized JSON arrays/objects.
+- Repository filters and run status/conclusion filters are supported and
+  invalid filters return bounded client errors.
+- Data endpoints return `503 snapshot_unavailable` without a snapshot.
+- Meta includes safe poll and rate-limit state.
+- Golden and focused tests cover schema, normalization, nullable fields, and
+  filtering.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 29 tests passed.
+- `ctest --preset dev --output-on-failure` — 33 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
   `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
@@ -47,11 +41,11 @@ for MVP-011.
 
 ## Compatibility and security
 
-No public data endpoint changed. HTTP handlers still read only the snapshot;
-poll failures do not expose credentials or replace existing state. Poll state
-stores only bounded categories and timestamps, never raw GitHub error bodies.
+This is an additive v1 API implementation. Handlers read only immutable
+snapshots and operational state; they never invoke GitHub or expose tokens,
+raw upstream bodies, or raw exception messages.
 
 ## Deferred
 
-Public resource endpoints and status serialization, signal handling, and
-container hardening remain assigned to later milestones.
+Activity aggregation, final container hardening, signal behavior, and release
+automation remain assigned to later milestones.
