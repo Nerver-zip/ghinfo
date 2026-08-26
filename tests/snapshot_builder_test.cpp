@@ -60,7 +60,8 @@ class LocalHttpServer {
     int port_{};
 };
 
-void register_repository(httplib::Server& server, const std::string& full_name) {
+void register_repository(httplib::Server& server, const std::string& full_name,
+                         bool healthy = true) {
     const auto repository_body = std::string{"{\"id\":"} +
                                  (full_name == "a/repo" ? "1001" : "1002") + ",\"full_name\":\"" +
                                  full_name +
@@ -77,32 +78,55 @@ void register_repository(httplib::Server& server, const std::string& full_name) 
         response.set_header("X-RateLimit-Reset", "0");
     };
 
-    server.Get("/repos/" + full_name, [repository_body, add_rate_headers](
+    server.Get("/repos/" + full_name, [repository_body, add_rate_headers, healthy](
                                           const httplib::Request&, httplib::Response& response) {
+        if (!healthy) {
+            response.status = 503;
+            return;
+        }
         add_rate_headers(response);
         response.set_content(repository_body, "application/json");
     });
-    server.Get("/repos/" + full_name + "/issues",
-               [issues, add_rate_headers](const httplib::Request&, httplib::Response& response) {
+    server.Get(
+        "/repos/" + full_name + "/issues",
+        [issues, add_rate_headers, healthy](const httplib::Request&, httplib::Response& response) {
+            if (!healthy) {
+                response.status = 503;
+                return;
+            }
+            add_rate_headers(response);
+            response.set_content(issues, "application/json");
+        });
+    server.Get("/repos/" + full_name + "/pulls",
+               [pull_requests, add_rate_headers, healthy](const httplib::Request&,
+                                                          httplib::Response& response) {
+                   if (!healthy) {
+                       response.status = 503;
+                       return;
+                   }
                    add_rate_headers(response);
-                   response.set_content(issues, "application/json");
+                   response.set_content(pull_requests, "application/json");
                });
     server.Get(
-        "/repos/" + full_name + "/pulls",
-        [pull_requests, add_rate_headers](const httplib::Request&, httplib::Response& response) {
+        "/repos/" + full_name + "/actions/runs",
+        [runs, add_rate_headers, healthy](const httplib::Request&, httplib::Response& response) {
+            if (!healthy) {
+                response.status = 503;
+                return;
+            }
             add_rate_headers(response);
-            response.set_content(pull_requests, "application/json");
+            response.set_content(runs, "application/json");
         });
-    server.Get("/repos/" + full_name + "/actions/runs",
-               [runs, add_rate_headers](const httplib::Request&, httplib::Response& response) {
-                   add_rate_headers(response);
-                   response.set_content(runs, "application/json");
-               });
-    server.Get("/repos/" + full_name + "/actions/runs/3001/jobs",
-               [jobs, add_rate_headers](const httplib::Request&, httplib::Response& response) {
-                   add_rate_headers(response);
-                   response.set_content(jobs, "application/json");
-               });
+    server.Get(
+        "/repos/" + full_name + "/actions/runs/3001/jobs",
+        [jobs, add_rate_headers, healthy](const httplib::Request&, httplib::Response& response) {
+            if (!healthy) {
+                response.status = 503;
+                return;
+            }
+            add_rate_headers(response);
+            response.set_content(jobs, "application/json");
+        });
 }
 
 TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
@@ -152,6 +176,25 @@ TEST(SnapshotBuilderTest, FormatsCurrentTimeAsUtcIso8601) {
     EXPECT_EQ(timestamp[10], 'T');
     EXPECT_EQ(timestamp[13], ':');
     EXPECT_EQ(timestamp[16], ':');
+}
+
+TEST(SnapshotBuilderTest, RejectsPartialRefreshWhenAnyRepositoryFails) {
+    LocalHttpServer server;
+    register_repository(server.server(), "a/repo");
+    register_repository(server.server(), "b/repo", false);
+
+    ghinfo::Config config;
+    config.repositories = {
+        ghinfo::parse_repository_ref("a/repo"),
+        ghinfo::parse_repository_ref("b/repo"),
+    };
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    EXPECT_THROW((void)ghinfo::build_snapshot(config, client, 8, "2026-08-26T19:00:00Z"),
+                 ghinfo::GitHubRequestError);
 }
 
 } // namespace

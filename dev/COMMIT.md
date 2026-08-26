@@ -2,14 +2,15 @@
 
 ## Objective
 
-Add the objective, consumer-neutral `/v1/activity` view for MVP-013.
+Harden GitHub parsing and refresh failure behavior for MVP-014.
 
 ## Files changed
 
-- `include/ghinfo/server.hpp`
-- `src/server.cpp`
-- `tests/api_test.cpp`
-- `docs/API.md`
+- `src/github_client.cpp`
+- `tests/github_client_test.cpp`
+- `tests/snapshot_builder_test.cpp`
+- `docs/ARCHITECTURE.md`
+- `docs/TESTING.md`
 - `docs/ROADMAP.md`
 - `README.md`
 - `dev/COMMIT.md`
@@ -17,17 +18,18 @@ Add the objective, consumer-neutral `/v1/activity` view for MVP-013.
 
 ## Acceptance criteria
 
-- `/v1/activity` exposes running jobs, failed runs, open pull requests, and
-  open issues from the immutable snapshot.
-- Activity contains no priority, score, confidence, or UI-specific fields.
-- The endpoint preserves the standard version/timestamp/stale envelope and
-  returns `503 snapshot_unavailable` before readiness.
-- Focused tests cover objective grouping and forbidden presentation fields.
+- Timeout, rate-limit hints, 64-bit IDs, nullable job timestamps, and partial
+  refresh behavior have regression coverage.
+- Existing 304, pagination, malformed JSON, secret-safety, and API golden
+  coverage remains green.
+- Nullable GitHub fields are represented as absent optionals and serialize as
+  JSON `null` where applicable.
+- Documentation records the all-or-nothing candidate policy.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 34 tests passed.
+- `ctest --preset dev --output-on-failure` — 38 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
   `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
@@ -37,10 +39,11 @@ Add the objective, consumer-neutral `/v1/activity` view for MVP-013.
 
 ## Compatibility and security
 
-This is an additive v1 endpoint. It reads only the immutable snapshot and
-does not create GitHub traffic or expose credentials.
+No public API shape changed. The parser remains strict about required fields,
+uses fixed-width IDs, preserves nullability, and keeps upstream response bodies
+out of exception text.
 
 ## Deferred
 
-Failure hardening, final container verification, signal behavior, CI/release
-work, and the v0.1.0 audit remain.
+Production container verification, signal behavior, CI/release work, and the
+final v0.1.0 audit remain.

@@ -2,44 +2,44 @@
 
 ## Current milestone
 
-**MVP-013 — Activity view**
+**MVP-014 — Hardening**
 
 Target commit:
 
 ```text
-feat(api): add aggregated activity endpoint
+test: harden GitHub failure and API contracts
 ```
 
 ## Goal
 
-Add a consumer-neutral activity view composed only from objective state already
-present in the immutable snapshot.
+Close the high-risk failure and contract gaps before container and release
+work, with deterministic local regression evidence.
 
 ## Acceptance criteria
 
-- `GET /v1/activity` returns `runningJobs`, `failedRuns`, `pullRequests`, and
-  `issues` groups.
-- Groups contain normalized resource payloads and deterministic ordering from
-  the snapshot.
-- No priority, confidence, score, display, or consumer-specific fields are
-  introduced.
-- The endpoint returns `503 snapshot_unavailable` before the first complete
-  poll and never triggers GitHub traffic.
-- Tests cover inclusion, exclusion, schema version, and stale metadata.
+- Transport tests cover 304, 403/429, timeout, malformed JSON, pagination,
+  rate-limit hints, and secret-safe errors.
+- Domain parsing preserves 64-bit IDs and nullable upstream fields.
+- Snapshot construction rejects partial repository refreshes without exposing
+  partial candidates.
+- API golden and resource tests cover schema and normalized output.
+- Documentation states the all-or-nothing refresh policy and current test
+  coverage.
 
 ## Non-goals
 
-- ranking or prioritization;
-- recommendation logic;
-- notifications or event streaming;
-- local API pagination.
+- new product endpoints;
+- persistence;
+- changes to public v1 meanings;
+- container or CI redesign.
 
 ## Expected files
 
-- `include/ghinfo/server.hpp`
-- `src/server.cpp`
-- `tests/api_test.cpp`
-- `docs/API.md`
+- `src/github_client.cpp`
+- `tests/github_client_test.cpp`
+- `tests/snapshot_builder_test.cpp`
+- `docs/ARCHITECTURE.md`
+- `docs/TESTING.md`
 - `docs/ROADMAP.md`
 - `README.md`
 - `dev/COMMIT.md`
@@ -48,8 +48,9 @@ present in the immutable snapshot.
 ## Required skills
 
 - `.agents/skills/modern-cpp/SKILL.md`
-- `.agents/skills/api-contract/SKILL.md`
+- `.agents/skills/github-rest/SKILL.md`
 - `.agents/skills/cpp-testing/SKILL.md`
+- `.agents/skills/api-contract/SKILL.md`
 - `.agents/skills/cpp-code-review/SKILL.md`
 
 ## Validation
