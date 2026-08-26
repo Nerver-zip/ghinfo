@@ -69,10 +69,12 @@ The scaffold already provides:
 - `AGENTS.md` plus focused `.agents` skills, conventions, and prompts;
 - architecture, API, security, testing, development, and MVP roadmap docs.
 
-The implementation currently covers authenticated transport, conditional
-requests, normalized GitHub resources, complete snapshot construction, and a
-resilient background poller through **MVP-011**. The next milestone is
-**MVP-016: CI/release v0.1.0**. See [`dev/PLAN.md`](dev/PLAN.md) and
+The implementation covers authenticated transport, conditional requests,
+normalized GitHub resources, complete snapshots, a resilient background
+poller, the full v1 read API, activity aggregation, runtime hardening, and
+CI/release automation through **MVP-016**. The remaining release action is to
+run the Docker build on a host with an active daemon, then tag/push `v0.1.0`.
+See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 Release instructions are in [`docs/RELEASE.md`](docs/RELEASE.md).
