@@ -178,6 +178,8 @@ Acceptance:
 - objective grouping only;
 - no presentation scoring/priority.
 
+Status: delivered by the current implementation and focused API tests.
+
 ### MVP-014 — Hardening
 
 **Commit:** `test: harden GitHub failure and API contracts`

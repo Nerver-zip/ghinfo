@@ -165,6 +165,28 @@ TEST(ApiTest, DataEndpointsReportUnavailableBeforeFirstSnapshot) {
     EXPECT_EQ(body.at("error"), "snapshot_unavailable");
 }
 
+TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
+    ghinfo::SnapshotStore store;
+    auto snapshot = sample_snapshot();
+    snapshot->jobs.push_back(ghinfo::WorkflowJob{
+        4002, 3002, "other/repo", "pending-check", ghinfo::RunStatus::in_progress, std::nullopt,
+        std::nullopt, std::nullopt, "https://github.com/other/repo/job/4002"});
+    store.publish(std::move(snapshot));
+    store.record_poll_success("2026-08-26T20:45:31Z");
+
+    const auto response = ghinfo::make_activity_response(store);
+    ASSERT_EQ(response.status, 200);
+    const auto body = nlohmann::json::parse(response.body);
+    ASSERT_EQ(body.at("activity").at("runningJobs").size(), 1U);
+    EXPECT_EQ(body.at("activity").at("runningJobs").at(0).at("name"), "pending-check");
+    ASSERT_EQ(body.at("activity").at("failedRuns").size(), 1U);
+    EXPECT_EQ(body.at("activity").at("failedRuns").at(0).at("conclusion"), "failure");
+    EXPECT_EQ(body.at("activity").at("pullRequests").size(), 1U);
+    EXPECT_EQ(body.at("activity").at("issues").size(), 2U);
+    EXPECT_FALSE(body.at("activity").contains("priority"));
+    EXPECT_FALSE(body.at("activity").contains("score"));
+}
+
 TEST(ApiTest, MetaIncludesSafePollAndRateLimitState) {
     ghinfo::SnapshotStore store;
     store.publish(sample_snapshot());

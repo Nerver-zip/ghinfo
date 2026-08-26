@@ -179,7 +179,26 @@ Consumer-neutral "things currently worth inspecting", built only from objective 
 - open pull requests;
 - recent/open issues.
 
-This endpoint must not invent priority/confidence/display decisions.
+Response shape:
+
+```json
+{
+  "schemaVersion": 1,
+  "generation": 7,
+  "generatedAt": "2026-08-26T20:45:31Z",
+  "stale": false,
+  "activity": {
+    "runningJobs": [],
+    "failedRuns": [],
+    "pullRequests": [],
+    "issues": []
+  }
+}
+```
+
+This endpoint must not invent priority, confidence, score, or display
+decisions. It returns `503 snapshot_unavailable` before the first complete
+poll.
 
 ## Versioning policy
 

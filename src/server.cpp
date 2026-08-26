@@ -418,6 +418,41 @@ JsonResponse make_workflow_jobs_response(const Snapshot& snapshot,
     return json_response(body);
 }
 
+JsonResponse make_activity_response(const SnapshotStore& store) {
+    const auto snapshot = store.get();
+    if (snapshot == nullptr) {
+        return make_snapshot_unavailable_response();
+    }
+
+    Json running_jobs = Json::array();
+    Json failed_runs = Json::array();
+    Json pull_requests = Json::array();
+    Json issues = Json::array();
+    for (const auto& job : snapshot->jobs) {
+        if (job.status == RunStatus::queued || job.status == RunStatus::in_progress) {
+            running_jobs.push_back(workflow_job_json(job));
+        }
+    }
+    for (const auto& run : snapshot->workflow_runs) {
+        if (run.conclusion == Conclusion::failure) {
+            failed_runs.push_back(workflow_run_json(run));
+        }
+    }
+    for (const auto& pull_request : snapshot->pull_requests) {
+        pull_requests.push_back(pull_request_json(pull_request));
+    }
+    for (const auto& issue : snapshot->issues) {
+        issues.push_back(issue_json(issue));
+    }
+
+    auto body = base_json(store, *snapshot);
+    body["activity"] = Json{{"runningJobs", std::move(running_jobs)},
+                            {"failedRuns", std::move(failed_runs)},
+                            {"pullRequests", std::move(pull_requests)},
+                            {"issues", std::move(issues)}};
+    return json_response(body);
+}
+
 JsonResponse make_snapshot_unavailable_response() {
     return error_response("snapshot_unavailable", 503);
 }
@@ -529,6 +564,10 @@ void ApiServer::register_routes() {
         write_response(snapshot == nullptr ? make_snapshot_unavailable_response()
                                            : make_workflow_jobs_response(*snapshot, repository),
                        response);
+    });
+
+    server_.Get("/v1/activity", [this](const httplib::Request&, httplib::Response& response) {
+        write_response(make_activity_response(store_), response);
     });
 }
 
