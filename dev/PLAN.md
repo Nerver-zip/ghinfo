@@ -14,6 +14,8 @@ cannot be performed in this environment.
 - Every commit has post-commit status, whitespace, and relevant test evidence.
 - Docker image build and remote GitHub Actions/release state are verified on a
   host with Docker and a configured GitHub remote.
+- Upstream timestamps and repository identity are rejected when they violate
+  the normalized domain contract.
 - No tag or remote release is created without those external gates.
 
 ## Current external blockers
