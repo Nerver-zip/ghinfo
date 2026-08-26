@@ -90,6 +90,7 @@ if(GHINFO_BUILD_TESTS)
         tests/api_test.cpp
         tests/github_client_test.cpp
         tests/snapshot_builder_test.cpp
+        tests/poller_test.cpp
     )
 
     target_link_libraries(ghinfo_tests
