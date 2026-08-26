@@ -389,21 +389,36 @@ std::optional<std::uint32_t> header_uint32(const std::map<std::string, std::stri
     return value;
 }
 
+std::optional<std::uint64_t> header_uint64(const std::map<std::string, std::string>& headers,
+                                           std::string_view name) {
+    const auto found = headers.find(std::string{name});
+    if (found == headers.end()) {
+        return std::nullopt;
+    }
+
+    std::uint64_t value{};
+    const auto [end, error] =
+        std::from_chars(found->second.data(), found->second.data() + found->second.size(), value);
+    if (error != std::errc{} || end != found->second.data() + found->second.size()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
 std::optional<std::string> format_reset_time(const std::map<std::string, std::string>& headers) {
     const auto found = headers.find("x-ratelimit-reset");
     if (found == headers.end()) {
         return std::nullopt;
     }
 
-    std::uint64_t epoch_seconds{};
-    const auto [end, error] = std::from_chars(
-        found->second.data(), found->second.data() + found->second.size(), epoch_seconds);
-    if (error != std::errc{} || end != found->second.data() + found->second.size() ||
-        epoch_seconds > static_cast<std::uint64_t>(std::numeric_limits<std::time_t>::max())) {
+    const auto epoch_seconds = header_uint64(headers, "x-ratelimit-reset");
+    if (!epoch_seconds.has_value() ||
+        epoch_seconds.value() >
+            static_cast<std::uint64_t>(std::numeric_limits<std::time_t>::max())) {
         return std::nullopt;
     }
 
-    const auto epoch = static_cast<std::time_t>(epoch_seconds);
+    const auto epoch = static_cast<std::time_t>(epoch_seconds.value());
     std::tm utc{};
     if (gmtime_r(&epoch, &utc) == nullptr) {
         return std::nullopt;
@@ -738,9 +753,26 @@ std::optional<RateLimit> GitHubClient::rate_limit() const {
     return rate_limit_;
 }
 
+std::optional<std::uint64_t> GitHubClient::retry_after_seconds() const {
+    std::lock_guard lock{metadata_mutex_};
+    return retry_after_seconds_;
+}
+
+std::optional<std::uint64_t> GitHubClient::rate_limit_reset_epoch_seconds() const {
+    std::lock_guard lock{metadata_mutex_};
+    return rate_limit_reset_epoch_seconds_;
+}
+
 void GitHubClient::update_rate_limit(const std::map<std::string, std::string>& headers) const {
+    const auto retry_after = header_uint64(headers, "retry-after");
+    const auto reset_epoch = header_uint64(headers, "x-ratelimit-reset");
     const auto limit = header_uint32(headers, "x-ratelimit-limit");
     const auto remaining = header_uint32(headers, "x-ratelimit-remaining");
+    {
+        std::lock_guard lock{metadata_mutex_};
+        retry_after_seconds_ = retry_after;
+        rate_limit_reset_epoch_seconds_ = reset_epoch;
+    }
     if (!limit.has_value() || !remaining.has_value()) {
         return;
     }

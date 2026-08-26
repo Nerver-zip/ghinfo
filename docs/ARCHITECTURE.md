@@ -73,19 +73,24 @@ stoppable interval wait
 The first refresh runs immediately after startup; later refreshes wait for the
 configured interval. HTTP request handling never participates in this loop.
 
-Transient GitHub failure preserves last-known-good data.
+Transient GitHub failure preserves last-known-good data. Failed attempts use a
+bounded exponential delay; GitHub `Retry-After` and rate-limit reset hints take
+precedence when available. Stop requests interrupt both the normal interval
+and failure backoff waits.
 
 The first successful complete poll makes `/readyz` return ready.
 
 ### SnapshotStore
 
-Owns the latest immutable `Snapshot`.
+Owns the latest immutable `Snapshot` and the mutable operational poll state.
 
 Readers obtain a `std::shared_ptr<const Snapshot>`.
 
 Writers publish a complete new snapshot rather than mutating shared vectors in place.
 
 This keeps read paths cheap and prevents consumers from observing half-refreshed state.
+Poll state is updated independently, so a failed refresh can mark the current
+snapshot stale without replacing its data or generation.
 
 ### ApiServer
 
@@ -156,9 +161,13 @@ The store tracks:
 - last poll attempt;
 - last successful poll;
 - stale status;
+- consecutive failures and a safe error category;
+- the next retry time;
 - current snapshot generation.
 
-Detailed transport errors stay in logs/diagnostic metadata and should not leak secrets.
+Detailed transport errors stay in logs/diagnostic metadata and should not leak
+secrets. A successful complete refresh publishes a new generation and resets
+the failure state; a failed refresh leaves the last-known-good snapshot intact.
 
 ## Decisions intentionally deferred
 
