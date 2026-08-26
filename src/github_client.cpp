@@ -216,6 +216,45 @@ std::vector<Issue> parse_issue_page(const Json& payload, const RepositoryRef& re
     return issues;
 }
 
+std::string required_nested_string(const Json& object, std::string_view parent,
+                                   std::string_view child) {
+    const auto parent_key = std::string{parent};
+    if (!object.is_object() || !object.contains(parent_key) || !object.at(parent_key).is_object()) {
+        throw PayloadShapeError("missing required object " + parent_key);
+    }
+    return required_field<std::string>(object.at(parent_key), child);
+}
+
+std::vector<PullRequest> parse_pull_request_page(const Json& payload,
+                                                 const RepositoryRef& repository) {
+    if (!payload.is_array()) {
+        throw PayloadShapeError("pull requests payload must be an array");
+    }
+
+    std::vector<PullRequest> pull_requests;
+    pull_requests.reserve(payload.size());
+    for (const auto& entry : payload) {
+        if (!entry.is_object()) {
+            throw PayloadShapeError("pull request entry must be an object");
+        }
+
+        PullRequest pull_request;
+        pull_request.id = required_field<std::uint64_t>(entry, "id");
+        pull_request.number = required_field<std::uint64_t>(entry, "number");
+        pull_request.repository = repository.full_name();
+        pull_request.title = required_field<std::string>(entry, "title");
+        pull_request.author = author_name(entry);
+        pull_request.draft = required_field<bool>(entry, "draft");
+        pull_request.head = required_nested_string(entry, "head", "ref");
+        pull_request.base = required_nested_string(entry, "base", "ref");
+        pull_request.created_at = required_field<std::string>(entry, "created_at");
+        pull_request.updated_at = required_field<std::string>(entry, "updated_at");
+        pull_request.url = required_field<std::string>(entry, "html_url");
+        pull_requests.push_back(std::move(pull_request));
+    }
+    return pull_requests;
+}
+
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
@@ -408,6 +447,39 @@ std::vector<Issue> GitHubClient::fetch_open_issues(const RepositoryRef& reposito
 
     throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
                              "GitHub issues pagination exceeded the safety limit");
+}
+
+std::vector<PullRequest>
+GitHubClient::fetch_open_pull_requests(const RepositoryRef& repository) const {
+    constexpr std::size_t page_size = 100;
+    constexpr std::size_t max_pages = 1000;
+    std::vector<PullRequest> pull_requests;
+
+    for (std::size_t page = 1; page <= max_pages; ++page) {
+        const auto path = "/repos/" + repository.full_name() +
+                          "/pulls?state=open&per_page=" + std::to_string(page_size) +
+                          "&page=" + std::to_string(page);
+        const auto response = get(path);
+        const auto payload = parse_json(response.body);
+
+        try {
+            auto page_pull_requests = parse_pull_request_page(payload, repository);
+            pull_requests.insert(pull_requests.end(),
+                                 std::make_move_iterator(page_pull_requests.begin()),
+                                 std::make_move_iterator(page_pull_requests.end()));
+        } catch (const PayloadShapeError& error) {
+            throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                     "GitHub pull requests payload has invalid shape: " +
+                                         std::string{error.what()});
+        }
+
+        if (!has_next_link(response)) {
+            return pull_requests;
+        }
+    }
+
+    throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                             "GitHub pull requests pagination exceeded the safety limit");
 }
 
 } // namespace ghinfo
