@@ -62,6 +62,8 @@ class GitHubClient {
     fetch_open_pull_requests(const RepositoryRef& repository) const;
     [[nodiscard]] std::vector<WorkflowRun> fetch_workflow_runs(const RepositoryRef& repository,
                                                                std::uint32_t history_limit) const;
+    [[nodiscard]] std::vector<WorkflowJob>
+    fetch_relevant_workflow_jobs(const RepositoryRef& repository, const WorkflowRun& run) const;
 
     static constexpr std::string_view api_base{"https://api.github.com"};
     static constexpr std::string_view api_version{"2026-03-10"};

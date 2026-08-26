@@ -358,4 +358,58 @@ TEST(GitHubClientTest, RejectsInvalidWorkflowHistoryLimit) {
                  std::invalid_argument);
 }
 
+TEST(GitHubClientTest, FetchesJobsOnlyForRelevantRuns) {
+    LocalHttpServer server;
+    const auto first_page = read_fixture("tests/fixtures/github/jobs.json");
+    std::atomic<int> request_count{0};
+    server.server().Get(
+        "/repos/owner/repo/actions/runs/3001/jobs",
+        [&](const httplib::Request& request, httplib::Response& response) {
+            ++request_count;
+            if (request.get_param_value("per_page") != "100" ||
+                request.get_param_value("page") == "") {
+                response.status = 400;
+                return;
+            }
+            if (request.get_param_value("page") == "1") {
+                response.set_header("Link", "<http://example.test/page=2>; rel=\"next\"");
+                response.set_content(first_page, "application/json");
+                return;
+            }
+            response.set_content("{\"total_count\":0,\"jobs\":[]}", "application/json");
+        });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    const auto repository = ghinfo::parse_repository_ref("owner/repo");
+
+    ghinfo::WorkflowRun failed_run;
+    failed_run.id = 3001;
+    failed_run.status = ghinfo::RunStatus::completed;
+    failed_run.conclusion = ghinfo::Conclusion::failure;
+    const auto jobs = client.fetch_relevant_workflow_jobs(repository, failed_run);
+
+    ASSERT_EQ(request_count.load(), 2);
+    ASSERT_EQ(jobs.size(), 1U);
+    EXPECT_EQ(jobs.front().id, 4001U);
+    EXPECT_EQ(jobs.front().run_id, 3001U);
+    EXPECT_EQ(jobs.front().repository, "owner/repo");
+    EXPECT_EQ(jobs.front().name, "gcc-debug");
+    EXPECT_EQ(jobs.front().status, ghinfo::RunStatus::completed);
+    ASSERT_TRUE(jobs.front().conclusion.has_value());
+    EXPECT_EQ(jobs.front().conclusion.value(), ghinfo::Conclusion::failure);
+    ASSERT_TRUE(jobs.front().started_at.has_value());
+    EXPECT_EQ(jobs.front().started_at.value(), "2026-08-26T12:00:10Z");
+    EXPECT_EQ(jobs.front().url, "https://github.com/owner/repo/actions/runs/3001/job/4001");
+
+    ghinfo::WorkflowRun successful_run;
+    successful_run.id = 3002;
+    successful_run.status = ghinfo::RunStatus::completed;
+    successful_run.conclusion = ghinfo::Conclusion::success;
+    EXPECT_TRUE(client.fetch_relevant_workflow_jobs(repository, successful_run).empty());
+    EXPECT_EQ(request_count.load(), 2);
+}
+
 } // namespace
