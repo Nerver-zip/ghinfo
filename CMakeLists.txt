@@ -96,6 +96,8 @@ if(GHINFO_BUILD_TESTS)
             GTest::gtest_main
     )
 
+    target_compile_definitions(ghinfo_tests PRIVATE GHINFO_SOURCE_DIR="${CMAKE_CURRENT_SOURCE_DIR}")
+
     ghinfo_set_project_warnings(ghinfo_tests)
     ghinfo_enable_sanitizers(ghinfo_tests)
 

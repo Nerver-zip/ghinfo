@@ -2,43 +2,45 @@
 
 ## Current milestone
 
-**MVP-004 — Conditional request cache**
+**MVP-005 — Open issues**
 
 Target commit:
 
 ```text
-feat(github): support conditional requests
+feat(github): fetch open issues
 ```
 
 ## Goal
 
-Reuse the last successful response for a request path when GitHub returns
-`304 Not Modified`, while retaining fresh response headers such as rate-limit
-metadata.
+Fetch all open issues for each configured repository, follow pagination, omit
+pull requests returned by GitHub's issues endpoint, and normalize the result
+into the public domain model.
 
 ## Acceptance criteria
 
-- A successful response with an ETag is cached per request path.
-- Later requests send `If-None-Match` with the cached ETag.
-- A `304` response returns the cached body and keeps the `304` status visible.
-- Current response headers override cached headers; cached headers fill absent
-  values needed by consumers.
-- A `304` without a cached body is reported as an HTTP failure.
-- Cache entries do not cross request paths.
-- Tests cover the 200 -> 304 lifecycle and changing rate-limit headers.
+- Requests use the repository issues endpoint with `state=open` and bounded
+  pages.
+- Pagination follows GitHub's `Link` `rel="next"` response semantics.
+- Entries containing `pull_request` are excluded from issues.
+- IDs, numbers, title, author, labels, timestamps, and browser URL are
+  normalized into `Issue` values.
+- Malformed JSON and invalid payload shapes are explicit non-transport errors.
+- Tests use the checked-in fixture and a local HTTP server, including at least
+  two pages.
 
 ## Non-goals
 
-- pagination;
-- issues/PRs/runs/jobs parsing;
-- polling or retries/backoff;
+- pull requests, workflow runs, or jobs;
+- polling, retries, and backoff;
 - public data endpoints.
 
 ## Expected files
 
+- `include/ghinfo/config.hpp`
 - `include/ghinfo/github_client.hpp`
 - `src/github_client.cpp`
 - `tests/github_client_test.cpp`
+- `CMakeLists.txt`
 - `docs/ARCHITECTURE.md`
 - `dev/COMMIT.md`
 

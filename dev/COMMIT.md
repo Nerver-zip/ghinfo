@@ -2,39 +2,41 @@
 
 ## Objective
 
-Add conditional requests to the GitHub transport for MVP-004.
+Fetch and normalize open issues for MVP-005.
 
 ## Files changed
 
+- `CMakeLists.txt`
 - `include/ghinfo/github_client.hpp`
 - `src/github_client.cpp`
 - `tests/github_client_test.cpp`
-- `docs/ARCHITECTURE.md`
 - `dev/PLAN.md`
 
 ## Acceptance criteria
 
-- Successful ETagged responses are cached by complete request path.
-- Cached ETags are sent as `If-None-Match` on later requests.
-- `304 Not Modified` returns the cached body with status 304.
-- Current 304 headers override cached headers while missing cached headers
-  remain available.
-- A 304 without a cached response is an explicit HTTP error.
-- Cache state is synchronized and isolated per client/path.
+- The issues endpoint is requested with `state=open`, 100-item pages, and the
+  configured repository.
+- GitHub `Link: rel="next"` pagination is followed with a safety bound.
+- Pull requests containing the `pull_request` field are omitted from issues.
+- Issue IDs/numbers, repository, title, author, labels, timestamps, and browser
+  URL are normalized into `Issue`.
+- Malformed JSON is reported as `malformed_json`; invalid payload shape is
+  reported as `semantic`.
+- Tests use the checked-in fixture and local HTTP responses across two pages.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 16 tests passed.
+- `ctest --preset dev --output-on-failure` — 19 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `git diff --check` — pending before commit.
 
 ## Compatibility and security
 
-No public HTTP schema changed. The cache contains response bodies and headers
-only; the PAT is never cached or included in diagnostics.
+No public HTTP endpoint changed. Upstream payloads are parsed into domain
+values; raw GitHub JSON and the PAT do not cross the client boundary.
 
 ## Deferred
 
-Pagination, resource parsing, polling, retries/backoff, and public data
+Pull requests, workflow resources, polling, retries/backoff, and public data
 endpoints remain assigned to later roadmap milestones.
