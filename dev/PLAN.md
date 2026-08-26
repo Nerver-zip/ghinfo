@@ -2,44 +2,47 @@
 
 ## Current milestone
 
-**MVP-008 — Workflow jobs**
+**MVP-009 — Snapshot builder**
 
 Target commit:
 
 ```text
-feat(github): fetch relevant workflow jobs
+feat(poller): build repository snapshots
 ```
 
 ## Goal
 
-Fetch normalized job details only for retained workflow runs whose current
-state is useful to inspect, following pagination without allowing historical
-growth outside the selected runs.
+Build a complete immutable candidate snapshot from all configured repositories
+and normalized GitHub resources before any future publication.
 
 ## Acceptance criteria
 
-- Queued/running runs and completed runs without a successful, skipped, or
-  neutral conclusion are eligible for job detail.
-- Completed successful, skipped, and neutral runs do not trigger a jobs request.
-- Jobs are fetched from the run-specific Actions jobs endpoint with bounded
-  pagination.
-- Job IDs and run IDs are parsed as 64-bit values; status/conclusion enums and
-  optional timestamps are normalized explicitly.
-- Invalid JSON and invalid payload shapes are explicit non-transport errors.
-- Tests use the checked-in jobs fixture, local paginated responses, and verify
-  irrelevant runs make no request.
+- Repository metadata, open issues, open pull requests, bounded workflow runs,
+  and relevant jobs are combined into one `Snapshot`.
+- A repository refresh failure aborts candidate construction rather than
+  producing a partial snapshot.
+- Generation and supplied UTC timestamp are stored in the candidate.
+- Rate-limit headers are normalized into optional snapshot metadata.
+- Collections have deterministic ordering independent of response arrival.
+- Tests exercise all resource endpoints through a local HTTP server and verify
+  complete counts, generation, timestamp, ordering, and rate limit.
 
 ## Non-goals
 
-- snapshot construction;
-- polling, retries, and backoff;
-- public data endpoints.
+- background thread lifecycle;
+- retry/backoff or stale-state policy;
+- public resource endpoints.
 
 ## Expected files
 
+- `include/ghinfo/model.hpp`
+- `include/ghinfo/snapshot.hpp`
 - `include/ghinfo/github_client.hpp`
 - `src/github_client.cpp`
-- `tests/github_client_test.cpp`
+- `include/ghinfo/snapshot_builder.hpp`
+- `src/snapshot_builder.cpp`
+- `tests/snapshot_builder_test.cpp`
+- `CMakeLists.txt`
 - `dev/COMMIT.md`
 
 ## Required skills
@@ -54,5 +57,8 @@ growth outside the selected runs.
 
 ```bash
 ./scripts/validate.sh
+cmake --preset asan
+cmake --build --preset asan
+ctest --preset asan --output-on-failure
 git diff --check
 ```

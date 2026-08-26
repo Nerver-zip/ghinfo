@@ -11,12 +11,6 @@
 
 namespace ghinfo {
 
-struct RateLimit {
-    std::uint32_t limit{};
-    std::uint32_t remaining{};
-    std::optional<std::string> reset_at;
-};
-
 struct Snapshot {
     std::uint64_t generation{};
     std::string generated_at;
