@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <chrono>
 #include <stdexcept>
 #include <string>
@@ -136,6 +137,73 @@ TEST(GitHubClientTest, SeparatesTransportErrors) {
         EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::transport);
         EXPECT_FALSE(error.status_code().has_value());
         EXPECT_EQ(std::string{error.what()}.find("secret-test-token"), std::string::npos);
+    }
+}
+
+TEST(GitHubClientTest, ReusesCachedBodyAfterNotModifiedResponse) {
+    LocalHttpServer server;
+    std::atomic<int> request_count{0};
+    server.server().Get("/cached",
+                        [&](const httplib::Request& request, httplib::Response& response) {
+                            const auto current_request = request_count.fetch_add(1);
+                            if (current_request == 0) {
+                                if (request.has_header("If-None-Match")) {
+                                    response.status = 400;
+                                    return;
+                                }
+                                response.set_header("ETag", "\"cached-v1\"");
+                                response.set_header("X-RateLimit-Remaining", "100");
+                                response.set_content("{\"version\":1}", "application/json");
+                                return;
+                            }
+
+                            if (request.get_header_value("If-None-Match") != "\"cached-v1\"") {
+                                response.status = 400;
+                                return;
+                            }
+                            response.status = 304;
+                            response.set_header("ETag", "\"cached-v1\"");
+                            response.set_header("X-RateLimit-Remaining", "98");
+                        });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto first = client.get("/cached");
+    const auto second = client.get("/cached");
+
+    EXPECT_EQ(request_count.load(), 2);
+    EXPECT_EQ(first.status_code, 200);
+    EXPECT_EQ(second.status_code, 304);
+    EXPECT_EQ(second.body, first.body);
+    ASSERT_TRUE(second.header("etag").has_value());
+    EXPECT_EQ(second.header("etag").value(), "\"cached-v1\"");
+    ASSERT_TRUE(second.header("x-ratelimit-remaining").has_value());
+    EXPECT_EQ(second.header("x-ratelimit-remaining").value(), "98");
+}
+
+TEST(GitHubClientTest, RejectsNotModifiedResponseWithoutCachedBody) {
+    LocalHttpServer server;
+    server.server().Get("/uncached", [](const httplib::Request&, httplib::Response& response) {
+        response.status = 304;
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    try {
+        (void)client.get("/uncached");
+        FAIL() << "expected HTTP error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::http);
+        ASSERT_TRUE(error.status_code().has_value());
+        EXPECT_EQ(error.status_code().value(), 304);
+        EXPECT_EQ(std::string{error.what()},
+                  "GitHub returned HTTP 304 without a cached response for /uncached");
     }
 }
 

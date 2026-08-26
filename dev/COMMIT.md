@@ -2,40 +2,39 @@
 
 ## Objective
 
-Implement the reusable authenticated GitHub REST GET transport required by
-MVP-003.
+Add conditional requests to the GitHub transport for MVP-004.
 
 ## Files changed
 
 - `include/ghinfo/github_client.hpp`
 - `src/github_client.cpp`
 - `tests/github_client_test.cpp`
+- `docs/ARCHITECTURE.md`
+- `dev/PLAN.md`
 
 ## Acceptance criteria
 
-- libcurl executes authenticated GET requests against a configured API base URL.
-- Requests include Bearer authentication, the GitHub JSON Accept header, the
-  pinned API version, and the stable User-Agent.
-- Connect and total timeouts are bounded.
-- Response status, body, and case-insensitive response headers are captured.
-- Transport failures and non-2xx HTTP responses have distinct error kinds.
-- HTTP error messages exclude the token and upstream response body.
-- Tests use a local HTTP server and never require GitHub or a real PAT.
+- Successful ETagged responses are cached by complete request path.
+- Cached ETags are sent as `If-None-Match` on later requests.
+- `304 Not Modified` returns the cached body with status 304.
+- Current 304 headers override cached headers while missing cached headers
+  remain available.
+- A 304 without a cached response is an explicit HTTP error.
+- Cache state is synchronized and isolated per client/path.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 15 tests passed.
+- `ctest --preset dev --output-on-failure` — 16 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `git diff --check` — pending before commit.
 
 ## Compatibility and security
 
-The public HTTP API is unchanged. The PAT is stored only inside
-`GitHubClient`, used to construct the Authorization header, and excluded from
-errors and tests.
+No public HTTP schema changed. The cache contains response bodies and headers
+only; the PAT is never cached or included in diagnostics.
 
 ## Deferred
 
-ETag caching, pagination, resource parsing, polling, retries, and public data
+Pagination, resource parsing, polling, retries/backoff, and public data
 endpoints remain assigned to later roadmap milestones.

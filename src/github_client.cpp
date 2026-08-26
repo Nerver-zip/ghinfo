@@ -70,6 +70,17 @@ std::string lowercase(std::string value) {
     return value;
 }
 
+bool contains_header(const std::vector<std::string>& headers, std::string_view name) {
+    for (const auto& header : headers) {
+        const auto separator = header.find(':');
+        if (separator != std::string::npos &&
+            lowercase(trim(header.substr(0, separator))) == name) {
+            return true;
+        }
+    }
+    return false;
+}
+
 std::size_t capture_header(char* data, std::size_t size, std::size_t count, void* userdata) {
     auto& headers = *static_cast<std::map<std::string, std::string>*>(userdata);
     std::string line{data, size * count};
@@ -152,6 +163,17 @@ GitHubResponse GitHubClient::get(std::string_view path,
     }
 
     ensure_curl_initialized();
+
+    const std::string cache_key{path};
+    std::optional<CachedResponse> cached;
+    {
+        std::lock_guard lock{cache_mutex_};
+        const auto found = response_cache_.find(cache_key);
+        if (found != response_cache_.end()) {
+            cached = found->second;
+        }
+    }
+
     CurlHandle handle{curl_easy_init()};
     if (!handle) {
         throw GitHubRequestError(GitHubErrorKind::transport, std::nullopt,
@@ -194,6 +216,9 @@ GitHubResponse GitHubClient::get(std::string_view path,
     add_header("X-GitHub-Api-Version: " + std::string{api_version});
     add_header("User-Agent: " + std::string{user_agent});
     add_header("Authorization: Bearer " + token_);
+    if (cached.has_value() && !contains_header(request_options.extra_headers, "if-none-match")) {
+        add_header("If-None-Match: " + cached->etag);
+    }
     for (const auto& extra_header : request_options.extra_headers) {
         if (extra_header.find_first_of("\r\n") != std::string::npos) {
             throw std::invalid_argument("GitHub request header contains a line break");
@@ -218,14 +243,38 @@ GitHubResponse GitHubClient::get(std::string_view path,
     }
 
     const bool successful = status_code >= 200 && status_code < 300;
-    const bool not_modified = request_options.allow_not_modified && status_code == 304;
+    const bool not_modified = status_code == 304;
     if (!successful && !not_modified) {
         throw GitHubRequestError(GitHubErrorKind::http, status_code,
                                  "GitHub returned HTTP " + std::to_string(status_code) + " for " +
                                      std::string{path});
     }
 
-    return GitHubResponse{status_code, std::move(body), std::move(response_headers)};
+    if (not_modified) {
+        if (!cached.has_value()) {
+            throw GitHubRequestError(GitHubErrorKind::http, status_code,
+                                     "GitHub returned HTTP 304 without a cached response for " +
+                                         std::string{path});
+        }
+
+        auto merged_headers = cached->response.headers;
+        for (auto& [name, value] : response_headers) {
+            merged_headers[name] = std::move(value);
+        }
+        return GitHubResponse{status_code, cached->response.body, std::move(merged_headers)};
+    }
+
+    GitHubResponse response{status_code, std::move(body), std::move(response_headers)};
+    const auto etag = response.header("etag");
+    {
+        std::lock_guard lock{cache_mutex_};
+        if (etag.has_value() && !etag->empty()) {
+            response_cache_[cache_key] = CachedResponse{*etag, response};
+        } else {
+            response_cache_.erase(cache_key);
+        }
+    }
+    return response;
 }
 
 } // namespace ghinfo
