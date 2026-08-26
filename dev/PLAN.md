@@ -2,32 +2,34 @@
 
 ## Current milestone
 
-**MVP-006 — Pull requests**
+**MVP-007 — Workflow runs**
 
 Target commit:
 
 ```text
-feat(github): fetch open pull requests
+feat(github): fetch workflow runs
 ```
 
 ## Goal
 
-Fetch all open pull requests for each configured repository, follow pagination,
-and normalize the review-relevant state into `PullRequest` values.
+Fetch a bounded recent workflow-run history per repository and normalize
+status, conclusion, branch, commit, event, timestamps, identifiers, and URL.
 
 ## Acceptance criteria
 
-- Requests use the repository pull-request endpoint with `state=open` and
-  bounded pages.
-- GitHub `Link` `rel="next"` pagination is followed.
-- IDs/numbers, title, author, draft, head/base refs, timestamps, and browser URL
-  are normalized.
+- Requests use the repository Actions workflow-runs endpoint with an explicit
+  `per_page` equal to the configured history bound.
+- No more than the requested history bound is returned or retained.
+- Known statuses and conclusions serialize through explicit domain enums;
+  upstream values outside the known set become `unknown`.
+- Null conclusions remain absent rather than becoming a false success/failure.
+- IDs are parsed as 64-bit values and timestamps/URLs are preserved.
 - Invalid JSON and invalid payload shapes are explicit non-transport errors.
-- Tests use the checked-in pull-request fixture and local two-page responses.
+- Tests use the checked-in runs fixture and a local HTTP response.
 
 ## Non-goals
 
-- workflow runs or jobs;
+- workflow jobs;
 - polling, retries, and backoff;
 - public data endpoints.
 

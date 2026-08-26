@@ -2,7 +2,7 @@
 
 ## Objective
 
-Fetch and normalize open pull requests for MVP-006.
+Fetch and normalize a bounded recent workflow-run history for MVP-007.
 
 ## Files changed
 
@@ -14,26 +14,28 @@ Fetch and normalize open pull requests for MVP-006.
 
 ## Acceptance criteria
 
-- The pull-request endpoint is requested with `state=open` and bounded pages.
-- GitHub `Link: rel="next"` pagination is followed with a safety bound.
-- Pull request IDs/numbers, repository, title, author, draft, head/base refs,
-  timestamps, and browser URL are normalized into `PullRequest`.
-- Invalid payload shapes remain explicit non-transport errors.
-- Tests use the checked-in pull fixture and local two-page responses.
+- Actions workflow runs are requested with `per_page` equal to the configured
+  1..100 history limit.
+- Returned runs are bounded to that limit.
+- Status and conclusion values use explicit enums, with unknown upstream values
+  mapped to `unknown` and null conclusions preserved as absent.
+- IDs, repository, name, branch, SHA, event, timestamps, and browser URL are
+  normalized into `WorkflowRun`.
+- Tests use the checked-in runs fixture and a local HTTP response.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 20 tests passed.
+- `ctest --preset dev --output-on-failure` — 22 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `git diff --check` — pending before commit.
 
 ## Compatibility and security
 
-No public HTTP schema changed. Only normalized pull-request values leave the
-GitHub client; the PAT and raw responses remain private.
+No public HTTP schema changed. The history bound prevents unbounded source
+state; raw payloads and the PAT remain private to the client.
 
 ## Deferred
 
-Workflow resources, polling, retries/backoff, and public data endpoints remain
+Workflow jobs, polling, retries/backoff, and public data endpoints remain
 assigned to later roadmap milestones.
