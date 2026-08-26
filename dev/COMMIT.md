@@ -24,10 +24,18 @@ the final MVP audit state.
 
 ## Validation
 
-- `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 39 tests passed.
-- `git diff --check` — pending before commit.
-- Canonical and sanitizer validation — rerun after this audit fix.
+- `./scripts/validate.sh` — passed.
+- `cmake --build --preset dev --parallel` and `ctest --preset dev
+  --output-on-failure` — 39 tests passed.
+- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan --parallel` and
+  `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
+  39 tests passed.
+- `cmake --preset release && cmake --build --preset release --parallel` —
+  passed.
+- `actionlint .github/workflows/*.yml` — passed.
+- `docker compose config --quiet` — passed with expected warnings for unset
+  runtime variables.
+- `git diff --check` — passed.
 
 ## Compatibility and security
 
@@ -37,4 +45,5 @@ it performs no internet access and contains no credentials.
 ## Deferred
 
 Docker image build and remote GitHub Actions/release verification still require
-external Docker/root and GitHub remote/authentication state.
+external Docker/root and GitHub remote/authentication state. The current
+checkout has no configured Git remote and `gh` is unauthenticated.
