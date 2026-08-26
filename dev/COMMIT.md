@@ -2,34 +2,33 @@
 
 ## Objective
 
-Complete live HTTP integration coverage for every planned endpoint and record
-the final MVP audit state.
+Reject malformed upstream timestamps and repository identity mismatches at the
+GitHub boundary, with regression coverage.
 
 ## Files changed
 
-- `tests/api_test.cpp`
+- `src/github_client.cpp`
+- `tests/github_client_test.cpp`
 - `docs/TESTING.md`
 - `dev/PLAN.md`
 - `dev/COMMIT.md`
 
 ## Acceptance criteria
 
-- A local `ApiServer` is started and queried over HTTP.
-- Health, readiness, meta, summary, repositories, repository detail, issues,
-  pulls, runs, jobs, and activity routes are exercised.
-- Repository/status filtering and `400`/`404` behavior are exercised.
-- Successful route responses, normalized fields, and readiness-independent
-  snapshot serving are verified without GitHub or a PAT.
-- The integration test cleans up the listener even when an assertion fails.
+- GitHub timestamps are constrained to the public UTC ISO-8601 form.
+- Repository responses must identify the requested repository.
+- Invalid timestamp and identity payloads are reported as semantic errors.
+- Existing live HTTP endpoint coverage remains green.
 
 ## Validation
 
 - `./scripts/validate.sh` — passed.
 - `cmake --build --preset dev --parallel` and `ctest --preset dev
-  --output-on-failure` — 39 tests passed.
+  --output-on-failure` — 40 tests passed.
 - `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan --parallel` and
   `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
-  39 tests passed.
+  40 tests passed. LeakSanitizer remained disabled because this host does not
+  permit the sanitizer runtime's ptrace operation.
 - `cmake --preset release && cmake --build --preset release --parallel` —
   passed.
 - `actionlint .github/workflows/*.yml` — passed.
@@ -39,8 +38,8 @@ the final MVP audit state.
 
 ## Compatibility and security
 
-No public schema changed. The test uses loopback and synthetic snapshots only;
-it performs no internet access and contains no credentials.
+No public schema changed. The parser only rejects malformed untrusted upstream
+data; tests use loopback and synthetic payloads without credentials.
 
 ## Deferred
 

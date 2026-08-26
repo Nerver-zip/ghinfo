@@ -46,7 +46,8 @@ Once transport lands, use local/fake responses for:
 - rate-limit reset hints;
 - malformed JSON;
 - timeout/error mapping;
-- maximum-width 64-bit identifiers and nullable upstream fields;
+- maximum-width 64-bit identifiers, nullable upstream fields, invalid UTC
+  timestamps, and mismatched repository identities;
 
 ### Poller tests
 

@@ -277,6 +277,42 @@ TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
     }
 }
 
+TEST(GitHubClientTest, RejectsInvalidUtcTimestampAndMismatchedRepository) {
+    LocalHttpServer server;
+    server.server().Get("/repos/owner/repo/issues", [](const httplib::Request&,
+                                                       httplib::Response& response) {
+        response.set_content(
+            R"([{"id":1001,"number":42,"title":"Issue","user":{"login":"octocat"},"labels":[],"created_at":"not-a-timestamp","updated_at":"2026-08-26T13:00:00Z","html_url":"https://github.com/owner/repo/issues/42"}])",
+            "application/json");
+    });
+    server.server().Get("/repos/owner/repo", [](const httplib::Request&,
+                                                httplib::Response& response) {
+        response.set_content(
+            R"({"id":1001,"full_name":"other/repo","private":false,"default_branch":"main","html_url":"https://github.com/other/repo","updated_at":"2026-08-26T13:00:00Z"})",
+            "application/json");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    const auto repository = ghinfo::parse_repository_ref("owner/repo");
+
+    try {
+        (void)client.fetch_open_issues(repository);
+        FAIL() << "expected invalid timestamp error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::semantic);
+    }
+
+    try {
+        (void)client.fetch_repository(repository);
+        FAIL() << "expected mismatched repository error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::semantic);
+    }
+}
+
 TEST(GitHubClientTest, Preserves64BitIdsAndNullableJobTimes) {
     LocalHttpServer server;
     server.server().Get("/repos/owner/repo/issues", [](const httplib::Request&,

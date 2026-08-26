@@ -160,6 +160,29 @@ std::string optional_string(const Json& object, std::string_view name) {
     return object.at(key).get<std::string>();
 }
 
+bool is_utc_timestamp(std::string_view value) {
+    if (value.size() != 20 || value[4] != '-' || value[7] != '-' || value[10] != 'T' ||
+        value[13] != ':' || value[16] != ':' || value[19] != 'Z') {
+        return false;
+    }
+    const auto is_digit = [](char character) { return character >= '0' && character <= '9'; };
+    for (std::size_t index = 0; index < value.size(); ++index) {
+        if (index != 4 && index != 7 && index != 10 && index != 13 && index != 16 && index != 19 &&
+            !is_digit(value[index])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+std::string required_utc_timestamp(const Json& object, std::string_view name) {
+    const auto value = required_field<std::string>(object, name);
+    if (!is_utc_timestamp(value)) {
+        throw PayloadShapeError("invalid UTC timestamp " + std::string{name});
+    }
+    return value;
+}
+
 std::optional<std::string> nullable_string(const Json& object, std::string_view name) {
     const auto key = std::string{name};
     if (!object.is_object() || !object.contains(key) || object.at(key).is_null()) {
@@ -168,7 +191,11 @@ std::optional<std::string> nullable_string(const Json& object, std::string_view 
     if (!object.at(key).is_string()) {
         throw PayloadShapeError("invalid field " + key);
     }
-    return object.at(key).get<std::string>();
+    const auto value = object.at(key).get<std::string>();
+    if (!is_utc_timestamp(value)) {
+        throw PayloadShapeError("invalid UTC timestamp " + key);
+    }
+    return value;
 }
 
 std::string author_name(const Json& object) {
@@ -212,8 +239,8 @@ std::vector<Issue> parse_issue_page(const Json& payload, const RepositoryRef& re
         issue.repository = repository.full_name();
         issue.title = required_field<std::string>(entry, "title");
         issue.author = author_name(entry);
-        issue.created_at = required_field<std::string>(entry, "created_at");
-        issue.updated_at = required_field<std::string>(entry, "updated_at");
+        issue.created_at = required_utc_timestamp(entry, "created_at");
+        issue.updated_at = required_utc_timestamp(entry, "updated_at");
         issue.url = required_field<std::string>(entry, "html_url");
 
         const auto& labels = entry.at("labels");
@@ -260,8 +287,8 @@ std::vector<PullRequest> parse_pull_request_page(const Json& payload,
         pull_request.draft = required_field<bool>(entry, "draft");
         pull_request.head = required_nested_string(entry, "head", "ref");
         pull_request.base = required_nested_string(entry, "base", "ref");
-        pull_request.created_at = required_field<std::string>(entry, "created_at");
-        pull_request.updated_at = required_field<std::string>(entry, "updated_at");
+        pull_request.created_at = required_utc_timestamp(entry, "created_at");
+        pull_request.updated_at = required_utc_timestamp(entry, "updated_at");
         pull_request.url = required_field<std::string>(entry, "html_url");
         pull_requests.push_back(std::move(pull_request));
     }
@@ -338,8 +365,8 @@ std::vector<WorkflowRun> parse_workflow_run_page(const Json& payload,
         run.branch = optional_string(entry, "head_branch");
         run.commit_sha = required_field<std::string>(entry, "head_sha");
         run.event = required_field<std::string>(entry, "event");
-        run.created_at = required_field<std::string>(entry, "created_at");
-        run.updated_at = required_field<std::string>(entry, "updated_at");
+        run.created_at = required_utc_timestamp(entry, "created_at");
+        run.updated_at = required_utc_timestamp(entry, "updated_at");
         run.url = required_field<std::string>(entry, "html_url");
         runs.push_back(std::move(run));
     }
@@ -442,7 +469,7 @@ std::optional<std::string> format_reset_time(const std::map<std::string, std::st
     return std::string{buffer};
 }
 
-Repository parse_repository_payload(const Json& payload) {
+Repository parse_repository_payload(const Json& payload, const RepositoryRef& requested) {
     if (!payload.is_object()) {
         throw PayloadShapeError("repository payload must be an object");
     }
@@ -450,10 +477,13 @@ Repository parse_repository_payload(const Json& payload) {
     Repository repository;
     repository.id = required_field<std::uint64_t>(payload, "id");
     repository.full_name = required_field<std::string>(payload, "full_name");
+    if (repository.full_name != requested.full_name()) {
+        throw PayloadShapeError("repository full_name does not match request");
+    }
     repository.is_private = required_field<bool>(payload, "private");
     repository.default_branch = required_field<std::string>(payload, "default_branch");
     repository.url = required_field<std::string>(payload, "html_url");
-    repository.updated_at = required_field<std::string>(payload, "updated_at");
+    repository.updated_at = required_utc_timestamp(payload, "updated_at");
     return repository;
 }
 
@@ -751,7 +781,7 @@ Repository GitHubClient::fetch_repository(const RepositoryRef& repository) const
     const auto payload = parse_json(response.body);
 
     try {
-        return parse_repository_payload(payload);
+        return parse_repository_payload(payload, repository);
     } catch (const PayloadShapeError& error) {
         throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
                                  "GitHub repository payload has invalid shape: " +
