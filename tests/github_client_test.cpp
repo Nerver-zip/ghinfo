@@ -276,4 +276,45 @@ TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
     }
 }
 
+TEST(GitHubClientTest, FetchesAndNormalizesPaginatedOpenPullRequests) {
+    LocalHttpServer server;
+    const auto first_page = read_fixture("tests/fixtures/github/pulls.json");
+    std::atomic<int> request_count{0};
+    server.server().Get("/repos/owner/repo/pulls", [&](const httplib::Request& request,
+                                                       httplib::Response& response) {
+        ++request_count;
+        const auto page = request.get_param_value("page");
+        if (page == "1") {
+            response.set_header("Link", "<http://example.test/page=2>; rel=\"next\"");
+            response.set_content(first_page, "application/json");
+            return;
+        }
+        if (page == "2") {
+            response.set_content("[]", "application/json");
+            return;
+        }
+        response.status = 400;
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto pull_requests =
+        client.fetch_open_pull_requests(ghinfo::parse_repository_ref("owner/repo"));
+
+    ASSERT_EQ(request_count.load(), 2);
+    ASSERT_EQ(pull_requests.size(), 1U);
+    EXPECT_EQ(pull_requests.front().id, 2001U);
+    EXPECT_EQ(pull_requests.front().number, 17U);
+    EXPECT_EQ(pull_requests.front().repository, "owner/repo");
+    EXPECT_EQ(pull_requests.front().title, "Example pull request");
+    EXPECT_EQ(pull_requests.front().author, "octocat");
+    EXPECT_FALSE(pull_requests.front().draft);
+    EXPECT_EQ(pull_requests.front().head, "feature/example");
+    EXPECT_EQ(pull_requests.front().base, "main");
+    EXPECT_EQ(pull_requests.front().url, "https://github.com/owner/repo/pull/17");
+}
+
 } // namespace

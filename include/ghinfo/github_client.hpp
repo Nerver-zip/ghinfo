@@ -58,6 +58,8 @@ class GitHubClient {
     [[nodiscard]] GitHubResponse get(std::string_view path,
                                      const GitHubRequestOptions& options = {}) const;
     [[nodiscard]] std::vector<Issue> fetch_open_issues(const RepositoryRef& repository) const;
+    [[nodiscard]] std::vector<PullRequest>
+    fetch_open_pull_requests(const RepositoryRef& repository) const;
 
     static constexpr std::string_view api_base{"https://api.github.com"};
     static constexpr std::string_view api_version{"2026-03-10"};
