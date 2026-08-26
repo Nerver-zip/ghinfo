@@ -9,6 +9,12 @@ namespace ghinfo {
 
 using GithubId = std::uint64_t;
 
+struct RateLimit {
+    std::uint32_t limit{};
+    std::uint32_t remaining{};
+    std::optional<std::string> reset_at;
+};
+
 enum class RunStatus {
     queued,
     in_progress,

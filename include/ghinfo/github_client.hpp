@@ -64,6 +64,8 @@ class GitHubClient {
                                                                std::uint32_t history_limit) const;
     [[nodiscard]] std::vector<WorkflowJob>
     fetch_relevant_workflow_jobs(const RepositoryRef& repository, const WorkflowRun& run) const;
+    [[nodiscard]] Repository fetch_repository(const RepositoryRef& repository) const;
+    [[nodiscard]] std::optional<RateLimit> rate_limit() const;
 
     static constexpr std::string_view api_base{"https://api.github.com"};
     static constexpr std::string_view api_version{"2026-03-10"};
@@ -79,6 +81,10 @@ class GitHubClient {
     GitHubClientOptions options_;
     mutable std::mutex cache_mutex_;
     mutable std::map<std::string, CachedResponse> response_cache_;
+    mutable std::mutex metadata_mutex_;
+    mutable std::optional<RateLimit> rate_limit_;
+
+    void update_rate_limit(const std::map<std::string, std::string>& headers) const;
 };
 
 } // namespace ghinfo

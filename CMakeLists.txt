@@ -43,6 +43,7 @@ add_library(ghinfo_lib
     src/github_client.cpp
     src/poller.cpp
     src/server.cpp
+    src/snapshot_builder.cpp
 )
 
 target_include_directories(ghinfo_lib
@@ -88,6 +89,7 @@ if(GHINFO_BUILD_TESTS)
         tests/snapshot_test.cpp
         tests/api_test.cpp
         tests/github_client_test.cpp
+        tests/snapshot_builder_test.cpp
     )
 
     target_link_libraries(ghinfo_tests

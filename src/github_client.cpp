@@ -5,7 +5,9 @@
 
 #include <algorithm>
 #include <cctype>
+#include <charconv>
 #include <cstdint>
+#include <ctime>
 #include <iterator>
 #include <limits>
 #include <memory>
@@ -371,6 +373,64 @@ bool needs_job_details(const WorkflowRun& run) {
            run.conclusion.value() != Conclusion::neutral;
 }
 
+std::optional<std::uint32_t> header_uint32(const std::map<std::string, std::string>& headers,
+                                           std::string_view name) {
+    const auto found = headers.find(std::string{name});
+    if (found == headers.end()) {
+        return std::nullopt;
+    }
+
+    std::uint32_t value{};
+    const auto [end, error] =
+        std::from_chars(found->second.data(), found->second.data() + found->second.size(), value);
+    if (error != std::errc{} || end != found->second.data() + found->second.size()) {
+        return std::nullopt;
+    }
+    return value;
+}
+
+std::optional<std::string> format_reset_time(const std::map<std::string, std::string>& headers) {
+    const auto found = headers.find("x-ratelimit-reset");
+    if (found == headers.end()) {
+        return std::nullopt;
+    }
+
+    std::uint64_t epoch_seconds{};
+    const auto [end, error] = std::from_chars(
+        found->second.data(), found->second.data() + found->second.size(), epoch_seconds);
+    if (error != std::errc{} || end != found->second.data() + found->second.size() ||
+        epoch_seconds > static_cast<std::uint64_t>(std::numeric_limits<std::time_t>::max())) {
+        return std::nullopt;
+    }
+
+    const auto epoch = static_cast<std::time_t>(epoch_seconds);
+    std::tm utc{};
+    if (gmtime_r(&epoch, &utc) == nullptr) {
+        return std::nullopt;
+    }
+
+    char buffer[32]{};
+    if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utc) == 0) {
+        return std::nullopt;
+    }
+    return std::string{buffer};
+}
+
+Repository parse_repository_payload(const Json& payload) {
+    if (!payload.is_object()) {
+        throw PayloadShapeError("repository payload must be an object");
+    }
+
+    Repository repository;
+    repository.id = required_field<std::uint64_t>(payload, "id");
+    repository.full_name = required_field<std::string>(payload, "full_name");
+    repository.is_private = required_field<bool>(payload, "private");
+    repository.default_branch = required_field<std::string>(payload, "default_branch");
+    repository.url = required_field<std::string>(payload, "html_url");
+    repository.updated_at = required_field<std::string>(payload, "updated_at");
+    return repository;
+}
+
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
@@ -498,6 +558,7 @@ GitHubResponse GitHubClient::get(std::string_view path,
         throw GitHubRequestError(GitHubErrorKind::transport, std::nullopt,
                                  "failed to read GitHub response status");
     }
+    update_rate_limit(response_headers);
 
     const bool successful = status_code >= 200 && status_code < 300;
     const bool not_modified = status_code == 304;
@@ -656,6 +717,37 @@ std::vector<WorkflowJob> GitHubClient::fetch_relevant_workflow_jobs(const Reposi
 
     throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
                              "GitHub workflow jobs pagination exceeded the safety limit");
+}
+
+Repository GitHubClient::fetch_repository(const RepositoryRef& repository) const {
+    const auto path = "/repos/" + repository.full_name();
+    const auto response = get(path);
+    const auto payload = parse_json(response.body);
+
+    try {
+        return parse_repository_payload(payload);
+    } catch (const PayloadShapeError& error) {
+        throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                 "GitHub repository payload has invalid shape: " +
+                                     std::string{error.what()});
+    }
+}
+
+std::optional<RateLimit> GitHubClient::rate_limit() const {
+    std::lock_guard lock{metadata_mutex_};
+    return rate_limit_;
+}
+
+void GitHubClient::update_rate_limit(const std::map<std::string, std::string>& headers) const {
+    const auto limit = header_uint32(headers, "x-ratelimit-limit");
+    const auto remaining = header_uint32(headers, "x-ratelimit-remaining");
+    if (!limit.has_value() || !remaining.has_value()) {
+        return;
+    }
+
+    RateLimit rate_limit{*limit, *remaining, format_reset_time(headers)};
+    std::lock_guard lock{metadata_mutex_};
+    rate_limit_ = std::move(rate_limit);
 }
 
 } // namespace ghinfo
