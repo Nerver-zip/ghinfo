@@ -255,6 +255,84 @@ std::vector<PullRequest> parse_pull_request_page(const Json& payload,
     return pull_requests;
 }
 
+RunStatus parse_run_status(std::string_view value) {
+    if (value == "queued") {
+        return RunStatus::queued;
+    }
+    if (value == "in_progress") {
+        return RunStatus::in_progress;
+    }
+    if (value == "completed") {
+        return RunStatus::completed;
+    }
+    return RunStatus::unknown;
+}
+
+Conclusion parse_conclusion(std::string_view value) {
+    if (value == "success") {
+        return Conclusion::success;
+    }
+    if (value == "failure") {
+        return Conclusion::failure;
+    }
+    if (value == "cancelled") {
+        return Conclusion::cancelled;
+    }
+    if (value == "skipped") {
+        return Conclusion::skipped;
+    }
+    if (value == "timed_out") {
+        return Conclusion::timed_out;
+    }
+    if (value == "neutral") {
+        return Conclusion::neutral;
+    }
+    if (value == "action_required") {
+        return Conclusion::action_required;
+    }
+    return Conclusion::unknown;
+}
+
+std::optional<Conclusion> optional_conclusion(const Json& object) {
+    if (!object.is_object() || !object.contains("conclusion") ||
+        object.at("conclusion").is_null()) {
+        return std::nullopt;
+    }
+    return parse_conclusion(required_field<std::string>(object, "conclusion"));
+}
+
+std::vector<WorkflowRun> parse_workflow_run_page(const Json& payload,
+                                                 const RepositoryRef& repository) {
+    if (!payload.is_object() || !payload.contains("workflow_runs") ||
+        !payload.at("workflow_runs").is_array()) {
+        throw PayloadShapeError("workflow runs payload must contain an array");
+    }
+
+    const auto& entries = payload.at("workflow_runs");
+    std::vector<WorkflowRun> runs;
+    runs.reserve(entries.size());
+    for (const auto& entry : entries) {
+        if (!entry.is_object()) {
+            throw PayloadShapeError("workflow run entry must be an object");
+        }
+
+        WorkflowRun run;
+        run.id = required_field<std::uint64_t>(entry, "id");
+        run.repository = repository.full_name();
+        run.name = required_field<std::string>(entry, "name");
+        run.status = parse_run_status(required_field<std::string>(entry, "status"));
+        run.conclusion = optional_conclusion(entry);
+        run.branch = optional_string(entry, "head_branch");
+        run.commit_sha = required_field<std::string>(entry, "head_sha");
+        run.event = required_field<std::string>(entry, "event");
+        run.created_at = required_field<std::string>(entry, "created_at");
+        run.updated_at = required_field<std::string>(entry, "updated_at");
+        run.url = required_field<std::string>(entry, "html_url");
+        runs.push_back(std::move(run));
+    }
+    return runs;
+}
+
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
@@ -480,6 +558,30 @@ GitHubClient::fetch_open_pull_requests(const RepositoryRef& repository) const {
 
     throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
                              "GitHub pull requests pagination exceeded the safety limit");
+}
+
+std::vector<WorkflowRun> GitHubClient::fetch_workflow_runs(const RepositoryRef& repository,
+                                                           std::uint32_t history_limit) const {
+    if (history_limit == 0 || history_limit > 100) {
+        throw std::invalid_argument("workflow run history must be between 1 and 100");
+    }
+
+    const auto path = "/repos/" + repository.full_name() +
+                      "/actions/runs?per_page=" + std::to_string(history_limit) + "&page=1";
+    const auto response = get(path);
+    const auto payload = parse_json(response.body);
+
+    try {
+        auto runs = parse_workflow_run_page(payload, repository);
+        if (runs.size() > history_limit) {
+            runs.resize(history_limit);
+        }
+        return runs;
+    } catch (const PayloadShapeError& error) {
+        throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                 "GitHub workflow runs payload has invalid shape: " +
+                                     std::string{error.what()});
+    }
 }
 
 } // namespace ghinfo

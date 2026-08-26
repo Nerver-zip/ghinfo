@@ -317,4 +317,45 @@ TEST(GitHubClientTest, FetchesAndNormalizesPaginatedOpenPullRequests) {
     EXPECT_EQ(pull_requests.front().url, "https://github.com/owner/repo/pull/17");
 }
 
+TEST(GitHubClientTest, FetchesBoundedWorkflowRunHistory) {
+    LocalHttpServer server;
+    const auto fixture = read_fixture("tests/fixtures/github/runs.json");
+    server.server().Get("/repos/owner/repo/actions/runs", [&](const httplib::Request& request,
+                                                              httplib::Response& response) {
+        if (request.get_param_value("per_page") != "20" || request.get_param_value("page") != "1") {
+            response.status = 400;
+            return;
+        }
+        response.set_content(fixture, "application/json");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto runs = client.fetch_workflow_runs(ghinfo::parse_repository_ref("owner/repo"), 20);
+
+    ASSERT_EQ(runs.size(), 1U);
+    EXPECT_EQ(runs.front().id, 3001U);
+    EXPECT_EQ(runs.front().repository, "owner/repo");
+    EXPECT_EQ(runs.front().name, "CI");
+    EXPECT_EQ(runs.front().status, ghinfo::RunStatus::completed);
+    ASSERT_TRUE(runs.front().conclusion.has_value());
+    EXPECT_EQ(runs.front().conclusion.value(), ghinfo::Conclusion::failure);
+    EXPECT_EQ(runs.front().branch, "main");
+    EXPECT_EQ(runs.front().commit_sha, "0123456789abcdef");
+    EXPECT_EQ(runs.front().event, "push");
+    EXPECT_EQ(runs.front().url, "https://github.com/owner/repo/actions/runs/3001");
+}
+
+TEST(GitHubClientTest, RejectsInvalidWorkflowHistoryLimit) {
+    ghinfo::GitHubClient client{"test-token"};
+
+    EXPECT_THROW((void)client.fetch_workflow_runs(ghinfo::parse_repository_ref("owner/repo"), 0),
+                 std::invalid_argument);
+    EXPECT_THROW((void)client.fetch_workflow_runs(ghinfo::parse_repository_ref("owner/repo"), 101),
+                 std::invalid_argument);
+}
+
 } // namespace
