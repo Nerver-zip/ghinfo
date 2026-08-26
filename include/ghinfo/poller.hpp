@@ -4,6 +4,7 @@
 #include "ghinfo/github_client.hpp"
 #include "ghinfo/snapshot.hpp"
 
+#include <cstdint>
 #include <stop_token>
 
 namespace ghinfo {
@@ -16,6 +17,8 @@ class Poller {
     void run(std::stop_token stop_token);
 
   private:
+    void refresh_once();
+
     const Config& config_;
     GitHubClient& github_;
     SnapshotStore& store_;

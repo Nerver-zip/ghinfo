@@ -58,17 +58,20 @@ last usable source state.
 
 Runs independently of incoming API traffic.
 
-The intended loop:
+The refresh loop:
 
 ```text
-wait
-  |
 refresh configured repositories
   |
 build complete candidate snapshot
   |
 publish atomically
+  |
+stoppable interval wait
 ```
+
+The first refresh runs immediately after startup; later refreshes wait for the
+configured interval. HTTP request handling never participates in this loop.
 
 Transient GitHub failure preserves last-known-good data.
 

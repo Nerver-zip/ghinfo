@@ -69,7 +69,11 @@ The scaffold already provides:
 - `AGENTS.md` plus focused `.agents` skills, conventions, and prompts;
 - architecture, API, security, testing, development, and MVP roadmap docs.
 
-The next implementation milestone is **MVP-003: authenticated GitHub transport**. See [`dev/PLAN.md`](dev/PLAN.md) and [`docs/ROADMAP.md`](docs/ROADMAP.md).
+The implementation currently covers authenticated transport, conditional
+requests, normalized GitHub resources, complete snapshot construction, and the
+background poller through **MVP-010**. The next milestone is **MVP-011:
+resilience and backoff**. See [`dev/PLAN.md`](dev/PLAN.md) and
+[`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Quick start
 
@@ -130,7 +134,9 @@ cmake --build --preset dev
 ./build/dev/ghinfo
 ```
 
-The current scaffold starts the HTTP API but does not poll GitHub yet.
+The daemon starts the HTTP API and performs its first GitHub poll in the
+background. `/readyz` remains unavailable until that poll publishes a complete
+snapshot.
 
 ```bash
 curl http://127.0.0.1:8080/healthz
