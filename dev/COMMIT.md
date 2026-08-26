@@ -2,48 +2,46 @@
 
 ## Objective
 
-Build complete normalized repository snapshots for MVP-009.
+Run background snapshot refreshes independently of HTTP for MVP-010.
 
 ## Files changed
 
-- `CMakeLists.txt`
-- `include/ghinfo/model.hpp`
-- `include/ghinfo/snapshot.hpp`
-- `include/ghinfo/github_client.hpp`
-- `include/ghinfo/snapshot_builder.hpp`
-- `src/github_client.cpp`
-- `src/snapshot_builder.cpp`
-- `tests/snapshot_builder_test.cpp`
+- `include/ghinfo/poller.hpp`
+- `src/poller.cpp`
+- `src/main.cpp`
+- `tests/poller_test.cpp`
+- `README.md`
+- `docs/ARCHITECTURE.md`
 - `dev/COMMIT.md`
 - `dev/PLAN.md`
 
 ## Acceptance criteria
 
-- Every configured repository contributes repository, issues, pulls, bounded
-  runs, and relevant jobs to one candidate snapshot.
-- Candidate construction is all-or-nothing for the configured refresh.
-- Generation, supplied UTC timestamps, deterministic collection ordering, and
-  normalized rate-limit metadata are present.
-- Snapshot-builder tests exercise both configured repositories and all local
-  resource endpoints.
+- `Poller::run` refreshes immediately, publishes immutable snapshots, and
+  advances generation on later refreshes.
+- Refreshes run in a `std::jthread` owned by `main` and use a stoppable timed
+  wait.
+- Refresh failures are caught without publishing a candidate or marking the
+  store ready.
+- Tests prove first publication, normalized resource counts, generation 2, and
+  sub-500 ms stop after a one-hour configured interval.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 25 tests passed.
-- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan --parallel` — passed.
-- `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` — 25 tests passed.
-- Unmodified ASan discovery is unavailable in this executor because LeakSanitizer
-  refuses to run under ptrace; the limitation is recorded, not hidden.
+- `ctest --preset dev --output-on-failure` — 26 tests passed.
 - `./scripts/validate.sh` — pending before commit.
+- `cmake --preset asan` and ASan/UBSan build/tests — pending before commit;
+  this executor requires `LSAN_OPTIONS=detect_leaks=0` because it runs under
+  ptrace.
 - `git diff --check` — pending before commit.
 
 ## Compatibility and security
 
-No public HTTP schema changed. The builder publishes no state itself and does
-not expose raw upstream payloads or credentials.
+No public data endpoint changed. HTTP handlers still read only the snapshot;
+poll failures do not expose credentials or replace existing state.
 
 ## Deferred
 
-Background polling, stale-state preservation, retries/backoff, and public data
-endpoints remain assigned to later roadmap milestones.
+Backoff/rate-limit retry policy, public resource endpoints, signal handling,
+and container hardening remain assigned to later milestones.

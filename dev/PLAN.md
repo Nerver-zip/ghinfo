@@ -2,53 +2,50 @@
 
 ## Current milestone
 
-**MVP-009 — Snapshot builder**
+**MVP-010 — Background poller**
 
 Target commit:
 
 ```text
-feat(poller): build repository snapshots
+feat(poller): add periodic background refresh
 ```
 
 ## Goal
 
-Build a complete immutable candidate snapshot from all configured repositories
-and normalized GitHub resources before any future publication.
+Run complete snapshot refreshes independently of HTTP requests, publish the
+first successful snapshot atomically, repeat at the configured interval, and
+stop promptly through `std::stop_token`.
 
 ## Acceptance criteria
 
-- Repository metadata, open issues, open pull requests, bounded workflow runs,
-  and relevant jobs are combined into one `Snapshot`.
-- A repository refresh failure aborts candidate construction rather than
-  producing a partial snapshot.
-- Generation and supplied UTC timestamp are stored in the candidate.
-- Rate-limit headers are normalized into optional snapshot metadata.
-- Collections have deterministic ordering independent of response arrival.
-- Tests exercise all resource endpoints through a local HTTP server and verify
-  complete counts, generation, timestamp, ordering, and rate limit.
+- `Poller::run` performs an initial refresh without waiting for the interval.
+- Each successful refresh publishes a complete immutable snapshot and advances
+  generation.
+- The poller uses `std::stop_token` and a stoppable timed wait.
+- A failed refresh does not publish a candidate or mark the store ready.
+- `main` owns the poller in a `std::jthread`; API handlers remain read-only.
+- Tests prove first publication, generation, and prompt stop with a local
+  hermetic GitHub server.
 
 ## Non-goals
 
-- background thread lifecycle;
-- retry/backoff or stale-state policy;
-- public resource endpoints.
+- exponential backoff or stale metadata;
+- public resource endpoints;
+- signal/container lifecycle hardening beyond normal jthread ownership.
 
 ## Expected files
 
-- `include/ghinfo/model.hpp`
-- `include/ghinfo/snapshot.hpp`
-- `include/ghinfo/github_client.hpp`
-- `src/github_client.cpp`
-- `include/ghinfo/snapshot_builder.hpp`
-- `src/snapshot_builder.cpp`
-- `tests/snapshot_builder_test.cpp`
-- `CMakeLists.txt`
+- `include/ghinfo/poller.hpp`
+- `src/poller.cpp`
+- `src/main.cpp`
+- `tests/poller_test.cpp`
+- `README.md`
+- `docs/ARCHITECTURE.md`
 - `dev/COMMIT.md`
 
 ## Required skills
 
 - `.agents/skills/modern-cpp/SKILL.md`
-- `.agents/skills/github-rest/SKILL.md`
 - `.agents/skills/polling/SKILL.md`
 - `.agents/skills/cpp-testing/SKILL.md`
 - `.agents/skills/cpp-code-review/SKILL.md`
