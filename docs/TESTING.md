@@ -46,6 +46,7 @@ Once transport lands, use local/fake responses for:
 - rate-limit reset hints;
 - malformed JSON;
 - timeout/error mapping.
+- maximum-width 64-bit identifiers and nullable upstream fields;
 
 ### Poller tests
 
@@ -57,7 +58,8 @@ Cover:
 - stale metadata;
 - clean stop;
 - bounded exponential backoff and rate-limit hint precedence;
-- backoff reset after success.
+- backoff reset after success;
+- all-or-nothing behavior when one configured repository fails.
 
 ### HTTP tests
 

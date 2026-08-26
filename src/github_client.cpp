@@ -160,6 +160,17 @@ std::string optional_string(const Json& object, std::string_view name) {
     return object.at(key).get<std::string>();
 }
 
+std::optional<std::string> nullable_string(const Json& object, std::string_view name) {
+    const auto key = std::string{name};
+    if (!object.is_object() || !object.contains(key) || object.at(key).is_null()) {
+        return std::nullopt;
+    }
+    if (!object.at(key).is_string()) {
+        throw PayloadShapeError("invalid field " + key);
+    }
+    return object.at(key).get<std::string>();
+}
+
 std::string author_name(const Json& object) {
     if (!object.is_object() || !object.contains("user") || object.at("user").is_null()) {
         return "unknown";
@@ -356,8 +367,8 @@ std::vector<WorkflowJob> parse_workflow_job_page(const Json& payload,
         job.name = required_field<std::string>(entry, "name");
         job.status = parse_run_status(required_field<std::string>(entry, "status"));
         job.conclusion = optional_conclusion(entry);
-        job.started_at = optional_string(entry, "started_at");
-        job.completed_at = optional_string(entry, "completed_at");
+        job.started_at = nullable_string(entry, "started_at");
+        job.completed_at = nullable_string(entry, "completed_at");
         job.url = required_field<std::string>(entry, "html_url");
         jobs.push_back(std::move(job));
     }

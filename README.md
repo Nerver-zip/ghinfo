@@ -72,7 +72,7 @@ The scaffold already provides:
 The implementation currently covers authenticated transport, conditional
 requests, normalized GitHub resources, complete snapshot construction, and a
 resilient background poller through **MVP-011**. The next milestone is
-**MVP-014: failure and contract hardening**. See [`dev/PLAN.md`](dev/PLAN.md) and
+**MVP-015: production container verification**. See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Quick start

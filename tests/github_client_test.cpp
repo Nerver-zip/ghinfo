@@ -7,6 +7,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <limits>
 #include <stdexcept>
 #include <string>
 #include <string_view>
@@ -272,6 +273,88 @@ TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
         FAIL() << "expected malformed JSON error";
     } catch (const ghinfo::GitHubRequestError& error) {
         EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::malformed_json);
+        EXPECT_FALSE(error.status_code().has_value());
+    }
+}
+
+TEST(GitHubClientTest, Preserves64BitIdsAndNullableJobTimes) {
+    LocalHttpServer server;
+    server.server().Get("/repos/owner/repo/issues", [](const httplib::Request&,
+                                                       httplib::Response& response) {
+        response.set_content(
+            R"([{"id":18446744073709551615,"number":9223372036854775808,"title":"Large","user":{"login":"octocat"},"labels":[],"created_at":"2026-08-26T12:00:00Z","updated_at":"2026-08-26T13:00:00Z","html_url":"https://github.com/owner/repo/issues/9223372036854775808"}])",
+            "application/json");
+    });
+    server.server().Get("/repos/owner/repo/actions/runs/3001/jobs", [](const httplib::Request&,
+                                                                       httplib::Response&
+                                                                           response) {
+        response.set_content(
+            R"({"total_count":1,"jobs":[{"id":18446744073709551615,"run_id":3001,"name":"pending","status":"in_progress","conclusion":null,"started_at":null,"completed_at":null,"html_url":"https://github.com/owner/repo/actions/runs/3001/job/18446744073709551615"}]})",
+            "application/json");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    const auto repository = ghinfo::parse_repository_ref("owner/repo");
+    const auto issues = client.fetch_open_issues(repository);
+    ASSERT_EQ(issues.size(), 1U);
+    EXPECT_EQ(issues.front().id, std::numeric_limits<std::uint64_t>::max());
+    EXPECT_EQ(issues.front().number, 9223372036854775808ULL);
+
+    ghinfo::WorkflowRun run;
+    run.id = 3001;
+    run.status = ghinfo::RunStatus::in_progress;
+    const auto jobs = client.fetch_relevant_workflow_jobs(repository, run);
+    ASSERT_EQ(jobs.size(), 1U);
+    EXPECT_EQ(jobs.front().id, std::numeric_limits<std::uint64_t>::max());
+    EXPECT_FALSE(jobs.front().started_at.has_value());
+    EXPECT_FALSE(jobs.front().completed_at.has_value());
+}
+
+TEST(GitHubClientTest, CapturesRateLimitRetryHintsWithoutLeakingResponseBody) {
+    LocalHttpServer server;
+    server.server().Get("/rate-limited", [](const httplib::Request&, httplib::Response& response) {
+        response.status = 429;
+        response.set_header("Retry-After", "17");
+        response.set_header("X-RateLimit-Limit", "5000");
+        response.set_header("X-RateLimit-Remaining", "0");
+        response.set_header("X-RateLimit-Reset", "200");
+        response.set_content("private upstream details", "text/plain");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    EXPECT_THROW((void)client.get("/rate-limited"), ghinfo::GitHubRequestError);
+    EXPECT_EQ(client.retry_after_seconds(), 17U);
+    EXPECT_EQ(client.rate_limit_reset_epoch_seconds(), 200U);
+    ASSERT_TRUE(client.rate_limit().has_value());
+    EXPECT_EQ(client.rate_limit()->remaining, 0U);
+}
+
+TEST(GitHubClientTest, MapsRequestTimeoutToTransportError) {
+    LocalHttpServer server;
+    server.server().Get("/slow", [](const httplib::Request&, httplib::Response& response) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{200});
+        response.set_content("late", "text/plain");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{
+            .base_url = server.base_url(),
+            .connect_timeout = std::chrono::milliseconds{1000},
+            .total_timeout = std::chrono::milliseconds{30},
+        },
+    };
+    try {
+        (void)client.get("/slow");
+        FAIL() << "expected timeout error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::transport);
         EXPECT_FALSE(error.status_code().has_value());
     }
 }

@@ -196,6 +196,9 @@ Acceptance coverage:
 - 64-bit IDs;
 - API goldens.
 
+Status: delivered by the current transport, snapshot, and API regression
+tests.
+
 ### MVP-015 — Production container
 
 **Commit:** `feat(container): add production Docker image`

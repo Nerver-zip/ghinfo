@@ -80,6 +80,10 @@ and failure backoff waits.
 
 The first successful complete poll makes `/readyz` return ready.
 
+Refresh construction is all-or-nothing across configured repositories: if any
+repository request or normalization step fails, the candidate is discarded
+and the prior snapshot remains published.
+
 ### SnapshotStore
 
 Owns the latest immutable `Snapshot` and the mutable operational poll state.
