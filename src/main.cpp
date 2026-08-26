@@ -4,10 +4,23 @@
 #include "ghinfo/server.hpp"
 #include "ghinfo/snapshot.hpp"
 
+#include <atomic>
+#include <chrono>
+#include <csignal>
 #include <exception>
 #include <iostream>
 #include <string_view>
 #include <thread>
+
+namespace {
+
+volatile std::sig_atomic_t shutdown_requested = 0;
+
+void request_shutdown(int) noexcept {
+    shutdown_requested = 1;
+}
+
+} // namespace
 
 int main(int argc, char** argv) {
     if (argc == 2 && std::string_view{argv[1]} == "--version") {
@@ -24,10 +37,27 @@ int main(int argc, char** argv) {
         std::jthread poller_thread{
             [&poller](std::stop_token stop_token) { poller.run(stop_token); }};
 
+        std::signal(SIGINT, request_shutdown);
+        std::signal(SIGTERM, request_shutdown);
+
+        std::atomic<bool> listen_finished{false};
+        std::atomic<bool> listen_succeeded{false};
+        std::jthread server_thread{[&server, &listen_finished, &listen_succeeded] {
+            const auto succeeded = server.listen();
+            listen_succeeded.store(succeeded, std::memory_order_release);
+            listen_finished.store(true, std::memory_order_release);
+        }};
+
         std::cout << "ghinfo " << GHINFO_VERSION << " listening on " << config.bind_address << ':'
                   << config.port << '\n';
 
-        if (!server.listen()) {
+        while (shutdown_requested == 0 && !listen_finished.load(std::memory_order_acquire)) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{50});
+        }
+
+        server.stop();
+        server_thread.join();
+        if (!listen_succeeded.load(std::memory_order_acquire)) {
             std::cerr << "failed to start HTTP server\n";
             return 1;
         }

@@ -69,7 +69,9 @@ Logs must not include:
 
 ## Docker
 
-The runtime image uses a non-root user.
+The runtime image uses a non-root user, drops all Linux capabilities in
+Compose, disables privilege escalation, and declares `SIGTERM` as its stop
+signal.
 
 Secrets are supplied only at runtime.
 
