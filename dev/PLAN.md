@@ -2,50 +2,56 @@
 
 ## Current milestone
 
-**MVP-010 — Background poller**
+**MVP-011 — Resilience and backoff**
 
 Target commit:
 
 ```text
-feat(poller): add periodic background refresh
+feat(poller): preserve last-known-good state
 ```
 
 ## Goal
 
-Run complete snapshot refreshes independently of HTTP requests, publish the
-first successful snapshot atomically, repeat at the configured interval, and
-stop promptly through `std::stop_token`.
+Track polling attempts and failures independently from immutable snapshots,
+preserve the last successful data, and schedule bounded retries using GitHub
+throttling hints when available.
 
 ## Acceptance criteria
 
-- `Poller::run` performs an initial refresh without waiting for the interval.
-- Each successful refresh publishes a complete immutable snapshot and advances
-  generation.
-- The poller uses `std::stop_token` and a stoppable timed wait.
-- A failed refresh does not publish a candidate or mark the store ready.
-- `main` owns the poller in a `std::jthread`; API handlers remain read-only.
-- Tests prove first publication, generation, and prompt stop with a local
-  hermetic GitHub server.
+- A failed refresh never replaces or clears the last published snapshot.
+- Poll state records attempt time, stale state, consecutive failures, safe
+  failure category, and next retry metadata without raw errors/secrets.
+- Successful refresh resets stale/failure state and keeps generation monotonic.
+- Exponential retry delay is bounded; `Retry-After` takes precedence for 403/429
+  and the rate-limit reset hint is honored when present.
+- Stop tokens interrupt retry waits promptly.
+- Tests prove last-known-good preservation, stale transition, backoff bounds,
+  rate-limit hints, and reset after recovery.
 
 ## Non-goals
 
-- exponential backoff or stale metadata;
-- public resource endpoints;
-- signal/container lifecycle hardening beyond normal jthread ownership.
+- public status serialization beyond existing endpoints;
+- resource filtering or activity endpoint;
+- container/release changes.
 
 ## Expected files
 
+- `include/ghinfo/model.hpp`
+- `include/ghinfo/snapshot.hpp`
+- `include/ghinfo/github_client.hpp`
+- `src/github_client.cpp`
 - `include/ghinfo/poller.hpp`
 - `src/poller.cpp`
-- `src/main.cpp`
+- `tests/github_client_test.cpp`
 - `tests/poller_test.cpp`
-- `README.md`
 - `docs/ARCHITECTURE.md`
+- `docs/TESTING.md`
 - `dev/COMMIT.md`
 
 ## Required skills
 
 - `.agents/skills/modern-cpp/SKILL.md`
+- `.agents/skills/github-rest/SKILL.md`
 - `.agents/skills/polling/SKILL.md`
 - `.agents/skills/cpp-testing/SKILL.md`
 - `.agents/skills/cpp-code-review/SKILL.md`
@@ -54,8 +60,7 @@ stop promptly through `std::stop_token`.
 
 ```bash
 ./scripts/validate.sh
-cmake --preset asan
-cmake --build --preset asan
-ctest --preset asan --output-on-failure
+LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan
+LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure
 git diff --check
 ```

@@ -70,9 +70,9 @@ The scaffold already provides:
 - architecture, API, security, testing, development, and MVP roadmap docs.
 
 The implementation currently covers authenticated transport, conditional
-requests, normalized GitHub resources, complete snapshot construction, and the
-background poller through **MVP-010**. The next milestone is **MVP-011:
-resilience and backoff**. See [`dev/PLAN.md`](dev/PLAN.md) and
+requests, normalized GitHub resources, complete snapshot construction, and a
+resilient background poller through **MVP-011**. The next milestone is
+**MVP-012: public API resources and schema contracts**. See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
 ## Quick start

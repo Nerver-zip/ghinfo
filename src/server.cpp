@@ -2,6 +2,7 @@
 
 #include <nlohmann/json.hpp>
 
+#include <limits>
 #include <memory>
 #include <utility>
 
@@ -23,6 +24,38 @@ void SnapshotStore::publish(std::shared_ptr<const Snapshot> snapshot) {
 
     std::lock_guard lock{mutex_};
     snapshot_ = std::move(snapshot);
+}
+
+void SnapshotStore::record_poll_attempt(std::string timestamp) {
+    std::lock_guard lock{mutex_};
+    poll_state_.last_attempt = std::move(timestamp);
+}
+
+void SnapshotStore::record_poll_success(std::string timestamp) {
+    std::lock_guard lock{mutex_};
+    poll_state_.last_attempt = timestamp;
+    poll_state_.last_successful = std::move(timestamp);
+    poll_state_.stale = false;
+    poll_state_.consecutive_failures = 0;
+    poll_state_.last_error_kind.reset();
+    poll_state_.next_retry_at.reset();
+}
+
+void SnapshotStore::record_poll_failure(std::string timestamp, std::string error_kind,
+                                        std::string next_retry_at) {
+    std::lock_guard lock{mutex_};
+    poll_state_.last_attempt = std::move(timestamp);
+    poll_state_.stale = true;
+    if (poll_state_.consecutive_failures < std::numeric_limits<std::uint32_t>::max()) {
+        ++poll_state_.consecutive_failures;
+    }
+    poll_state_.last_error_kind = std::move(error_kind);
+    poll_state_.next_retry_at = std::move(next_retry_at);
+}
+
+PollState SnapshotStore::poll_state() const {
+    std::lock_guard lock{mutex_};
+    return poll_state_;
 }
 
 JsonResponse make_health_response() {

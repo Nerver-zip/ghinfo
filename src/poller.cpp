@@ -2,42 +2,137 @@
 
 #include "ghinfo/snapshot_builder.hpp"
 
+#include <algorithm>
 #include <chrono>
 #include <condition_variable>
+#include <ctime>
 #include <iostream>
+#include <limits>
 #include <memory>
 #include <mutex>
+#include <utility>
 
 namespace ghinfo {
+namespace {
+
+constexpr std::uint64_t base_backoff_seconds = 5;
+constexpr std::uint64_t max_backoff_seconds = 900;
+
+std::uint64_t now_epoch_seconds() {
+    const auto now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
+    if (now < 0) {
+        return 0;
+    }
+    return static_cast<std::uint64_t>(now);
+}
+
+std::string timestamp_after(std::chrono::seconds delay) {
+    const auto time =
+        std::chrono::system_clock::to_time_t(std::chrono::system_clock::now() + delay);
+    std::tm utc{};
+    if (gmtime_r(&time, &utc) == nullptr) {
+        return utc_now_iso8601();
+    }
+
+    char buffer[32]{};
+    if (std::strftime(buffer, sizeof(buffer), "%Y-%m-%dT%H:%M:%SZ", &utc) == 0) {
+        return utc_now_iso8601();
+    }
+    return std::string{buffer};
+}
+
+std::string error_category(GitHubErrorKind kind) {
+    switch (kind) {
+    case GitHubErrorKind::transport:
+        return "transport";
+    case GitHubErrorKind::http:
+        return "http";
+    case GitHubErrorKind::malformed_json:
+        return "malformed_json";
+    case GitHubErrorKind::semantic:
+        return "semantic";
+    }
+    return "unknown";
+}
+
+void wait_for_delay(std::stop_token stop_token, std::chrono::seconds delay) {
+    std::mutex wait_mutex;
+    std::condition_variable_any wait_condition;
+    std::unique_lock lock{wait_mutex};
+    wait_condition.wait_for(lock, stop_token, delay, [] { return false; });
+}
+
+} // namespace
+
+std::chrono::seconds calculate_backoff(std::uint32_t consecutive_failures, bool rate_limited,
+                                       std::optional<std::uint64_t> retry_after_seconds,
+                                       std::optional<std::uint64_t> reset_epoch_seconds,
+                                       std::uint64_t current_epoch_seconds) {
+    if (rate_limited && retry_after_seconds.has_value()) {
+        const auto bounded = std::min(retry_after_seconds.value(), max_backoff_seconds);
+        return std::chrono::seconds{std::max<std::uint64_t>(bounded, 1)};
+    }
+    if (rate_limited && reset_epoch_seconds.has_value() &&
+        reset_epoch_seconds.value() > current_epoch_seconds) {
+        const auto bounded =
+            std::min(reset_epoch_seconds.value() - current_epoch_seconds, max_backoff_seconds);
+        return std::chrono::seconds{std::max<std::uint64_t>(bounded, 1)};
+    }
+
+    std::uint64_t delay = base_backoff_seconds;
+    const auto attempts = std::max<std::uint32_t>(consecutive_failures, 1) - 1;
+    for (std::uint32_t attempt = 0; attempt < attempts && delay < max_backoff_seconds; ++attempt) {
+        delay = std::min(delay * 2, max_backoff_seconds);
+    }
+    return std::chrono::seconds{delay};
+}
 
 Poller::Poller(const Config& config, GitHubClient& github, SnapshotStore& store)
     : config_(config), github_(github), store_(store) {}
 
 void Poller::run(std::stop_token stop_token) {
+    std::uint32_t consecutive_failures = 0;
     while (!stop_token.stop_requested()) {
-        try {
-            refresh_once();
-        } catch (const std::exception& error) {
-            std::cerr << "poll failed: " << error.what() << '\n';
-        }
+        const auto attempt_timestamp = utc_now_iso8601();
+        store_.record_poll_attempt(attempt_timestamp);
 
-        std::mutex wait_mutex;
-        std::condition_variable_any wait_condition;
-        std::unique_lock lock{wait_mutex};
-        const auto stopped = wait_condition.wait_for(
-            lock, stop_token, std::chrono::seconds{config_.poll_interval_seconds},
-            [] { return false; });
-        if (stopped) {
-            return;
+        try {
+            refresh_once(attempt_timestamp);
+            store_.record_poll_success(attempt_timestamp);
+            consecutive_failures = 0;
+            wait_for_delay(stop_token, std::chrono::seconds{config_.poll_interval_seconds});
+        } catch (const GitHubRequestError& error) {
+            if (consecutive_failures < std::numeric_limits<std::uint32_t>::max()) {
+                ++consecutive_failures;
+            }
+            const auto status = error.status_code();
+            const bool rate_limited =
+                status.has_value() && (status.value() == 403 || status.value() == 429);
+            const auto delay =
+                calculate_backoff(consecutive_failures, rate_limited, github_.retry_after_seconds(),
+                                  github_.rate_limit_reset_epoch_seconds(), now_epoch_seconds());
+            store_.record_poll_failure(attempt_timestamp, error_category(error.kind()),
+                                       timestamp_after(delay));
+            std::cerr << "poll failed (" << error_category(error.kind()) << ")\n";
+            wait_for_delay(stop_token, delay);
+        } catch (const std::exception&) {
+            if (consecutive_failures < std::numeric_limits<std::uint32_t>::max()) {
+                ++consecutive_failures;
+            }
+            const auto delay = calculate_backoff(consecutive_failures, false, std::nullopt,
+                                                 std::nullopt, now_epoch_seconds());
+            store_.record_poll_failure(attempt_timestamp, "unexpected", timestamp_after(delay));
+            std::cerr << "poll failed (unexpected)\n";
+            wait_for_delay(stop_token, delay);
         }
     }
 }
 
-void Poller::refresh_once() {
+void Poller::refresh_once(std::string timestamp) {
     const auto current = store_.get();
     const auto generation = current == nullptr ? 1U : current->generation + 1U;
-    auto candidate =
-        std::make_shared<Snapshot>(build_snapshot(config_, github_, generation, utc_now_iso8601()));
+    auto candidate = std::make_shared<Snapshot>(
+        build_snapshot(config_, github_, generation, std::move(timestamp)));
     store_.publish(std::move(candidate));
 }
 

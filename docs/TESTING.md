@@ -43,6 +43,7 @@ Once transport lands, use local/fake responses for:
 - `304`;
 - `403`/`429`;
 - `Retry-After`;
+- rate-limit reset hints;
 - malformed JSON;
 - timeout/error mapping.
 
@@ -55,6 +56,7 @@ Cover:
 - partial refresh failure;
 - stale metadata;
 - clean stop;
+- bounded exponential backoff and rate-limit hint precedence;
 - backoff reset after success.
 
 ### HTTP tests

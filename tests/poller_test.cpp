@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <atomic>
 #include <chrono>
 #include <fstream>
 #include <iterator>
@@ -60,43 +61,65 @@ class LocalHttpServer {
     int port_{};
 };
 
-void register_repository(httplib::Server& server) {
+void register_repository(httplib::Server& server, std::atomic<bool>& healthy) {
     const auto issues = read_fixture("tests/fixtures/github/issues.json");
     const auto pull_requests = read_fixture("tests/fixtures/github/pulls.json");
     const auto runs = read_fixture("tests/fixtures/github/runs.json");
     const auto jobs = read_fixture("tests/fixtures/github/jobs.json");
 
-    server.Get("/repos/owner/repo", [](const httplib::Request&, httplib::Response& response) {
-        response.set_header("X-RateLimit-Limit", "5000");
-        response.set_header("X-RateLimit-Remaining", "4999");
-        response.set_header("X-RateLimit-Reset", "0");
-        response.set_content(
-            "{\"id\":1001,\"full_name\":\"owner/repo\",\"private\":false,"
-            "\"default_branch\":\"main\",\"html_url\":\"https://github.com/owner/repo\","
-            "\"updated_at\":\"2026-08-26T13:00:00Z\"}",
-            "application/json");
-    });
+    server.Get("/repos/owner/repo",
+               [&healthy](const httplib::Request&, httplib::Response& response) {
+                   if (!healthy.load()) {
+                       response.status = 503;
+                       return;
+                   }
+                   response.set_header("X-RateLimit-Limit", "5000");
+                   response.set_header("X-RateLimit-Remaining", "4999");
+                   response.set_header("X-RateLimit-Reset", "0");
+                   response.set_content(
+                       "{\"id\":1001,\"full_name\":\"owner/repo\",\"private\":false,"
+                       "\"default_branch\":\"main\",\"html_url\":\"https://github.com/owner/repo\","
+                       "\"updated_at\":\"2026-08-26T13:00:00Z\"}",
+                       "application/json");
+               });
     server.Get("/repos/owner/repo/issues",
-               [issues](const httplib::Request&, httplib::Response& response) {
+               [&healthy, issues](const httplib::Request&, httplib::Response& response) {
+                   if (!healthy.load()) {
+                       response.status = 503;
+                       return;
+                   }
                    response.set_content(issues, "application/json");
                });
     server.Get("/repos/owner/repo/pulls",
-               [pull_requests](const httplib::Request&, httplib::Response& response) {
+               [&healthy, pull_requests](const httplib::Request&, httplib::Response& response) {
+                   if (!healthy.load()) {
+                       response.status = 503;
+                       return;
+                   }
                    response.set_content(pull_requests, "application/json");
                });
     server.Get("/repos/owner/repo/actions/runs",
-               [runs](const httplib::Request&, httplib::Response& response) {
+               [&healthy, runs](const httplib::Request&, httplib::Response& response) {
+                   if (!healthy.load()) {
+                       response.status = 503;
+                       return;
+                   }
                    response.set_content(runs, "application/json");
                });
     server.Get("/repos/owner/repo/actions/runs/3001/jobs",
-               [jobs](const httplib::Request&, httplib::Response& response) {
+               [&healthy, jobs](const httplib::Request&, httplib::Response& response) {
+                   if (!healthy.load()) {
+                       response.status = 503;
+                       return;
+                   }
                    response.set_content(jobs, "application/json");
                });
 }
 
 TEST(PollerTest, PublishesFirstSnapshotAndStopsPromptly) {
     LocalHttpServer server;
-    register_repository(server.server());
+    std::atomic<bool> healthy{true};
+    register_repository(server.server(), healthy);
 
     ghinfo::Config config;
     config.repositories = {ghinfo::parse_repository_ref("owner/repo")};
@@ -139,6 +162,84 @@ TEST(PollerTest, PublishesFirstSnapshotAndStopsPromptly) {
     EXPECT_EQ(second->generation, 2U);
     second_worker.request_stop();
     second_worker.join();
+}
+
+TEST(PollerTest, PreservesLastGoodSnapshotWhileStaleAndRecovers) {
+    LocalHttpServer server;
+    std::atomic<bool> healthy{true};
+    register_repository(server.server(), healthy);
+
+    ghinfo::Config config;
+    config.repositories = {ghinfo::parse_repository_ref("owner/repo")};
+    config.poll_interval_seconds = 1;
+    config.run_history = 20;
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    ghinfo::SnapshotStore store;
+    ghinfo::Poller poller{config, client, store};
+
+    std::jthread worker{[&poller](std::stop_token stop_token) { poller.run(stop_token); }};
+    for (int attempt = 0; attempt < 500 && !store.ready(); ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+
+    ASSERT_TRUE(store.ready());
+    const auto first = store.get();
+    ASSERT_NE(first, nullptr);
+    const auto first_generation = first->generation;
+    const auto first_issue_count = first->issues.size();
+    const auto first_run_count = first->workflow_runs.size();
+
+    healthy.store(false);
+    for (int attempt = 0; attempt < 2500 && !store.poll_state().stale; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+
+    const auto stale_snapshot = store.get();
+    const auto stale_state = store.poll_state();
+    ASSERT_NE(stale_snapshot, nullptr);
+    EXPECT_EQ(stale_snapshot->generation, first_generation);
+    EXPECT_EQ(stale_snapshot->issues.size(), first_issue_count);
+    EXPECT_EQ(stale_snapshot->workflow_runs.size(), first_run_count);
+    EXPECT_TRUE(stale_state.stale);
+    EXPECT_GE(stale_state.consecutive_failures, 1U);
+    EXPECT_EQ(stale_state.last_error_kind, std::optional<std::string>{"http"});
+    EXPECT_TRUE(stale_state.next_retry_at.has_value());
+
+    worker.request_stop();
+    worker.join();
+
+    healthy.store(true);
+    std::jthread recovery_worker{[&poller](std::stop_token stop_token) { poller.run(stop_token); }};
+    for (int attempt = 0; attempt < 500 && store.poll_state().stale; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+
+    const auto recovered_snapshot = store.get();
+    const auto recovered_state = store.poll_state();
+    ASSERT_NE(recovered_snapshot, nullptr);
+    EXPECT_EQ(recovered_snapshot->generation, first_generation + 1U);
+    EXPECT_FALSE(recovered_state.stale);
+    EXPECT_EQ(recovered_state.consecutive_failures, 0U);
+    EXPECT_FALSE(recovered_state.last_error_kind.has_value());
+    EXPECT_FALSE(recovered_state.next_retry_at.has_value());
+    recovery_worker.request_stop();
+    recovery_worker.join();
+}
+
+TEST(PollerTest, BoundsExponentialBackoffAndHonorsRateLimitHints) {
+    EXPECT_EQ(ghinfo::calculate_backoff(1, false, std::nullopt, std::nullopt, 100),
+              std::chrono::seconds{5});
+    EXPECT_EQ(ghinfo::calculate_backoff(2, false, std::nullopt, std::nullopt, 100),
+              std::chrono::seconds{10});
+    EXPECT_EQ(ghinfo::calculate_backoff(100, false, std::nullopt, std::nullopt, 100),
+              std::chrono::seconds{900});
+    EXPECT_EQ(ghinfo::calculate_backoff(1, true, 7, 1000, 100), std::chrono::seconds{7});
+    EXPECT_EQ(ghinfo::calculate_backoff(1, true, std::nullopt, 200, 100),
+              std::chrono::seconds{100});
+    EXPECT_EQ(ghinfo::calculate_backoff(1, true, 5000, 200, 100), std::chrono::seconds{900});
 }
 
 } // namespace
