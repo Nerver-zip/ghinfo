@@ -212,6 +212,9 @@ The scaffold provides an initial image/Compose definition. This milestone finali
 - no secret in layers;
 - documented Compose flow.
 
+Status: runtime hardening and static Compose validation delivered. A local
+`docker build` remains to be run on a host with an active Docker daemon.
+
 ### MVP-016 — CI/release v0.1.0
 
 **Commit:** `ci: prepare v0.1.0 release`

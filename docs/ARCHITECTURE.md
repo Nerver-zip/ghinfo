@@ -136,6 +136,10 @@ Initial target:
 - one background `std::jthread` poller;
 - immutable snapshots exchanged via a small synchronization boundary.
 
+The main thread supervises the HTTP listener and converts `SIGINT`/`SIGTERM`
+into an orderly server stop; the poller `std::jthread` then stops through its
+stop token.
+
 No worker pool, coroutine runtime, or task scheduler is planned for the MVP.
 
 ## Persistence

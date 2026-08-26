@@ -34,6 +34,8 @@ COPY --from=builder /src/build/release/ghinfo /usr/local/bin/ghinfo
 USER ghinfo
 WORKDIR /home/ghinfo
 
+STOPSIGNAL SIGTERM
+
 ENV GHINFO_BIND=0.0.0.0
 ENV GHINFO_PORT=8080
 

@@ -2,15 +2,14 @@
 
 ## Objective
 
-Harden GitHub parsing and refresh failure behavior for MVP-014.
+Harden the production container runtime and process shutdown for MVP-015.
 
 ## Files changed
 
-- `src/github_client.cpp`
-- `tests/github_client_test.cpp`
-- `tests/snapshot_builder_test.cpp`
+- `src/main.cpp`
+- `Dockerfile`
 - `docs/ARCHITECTURE.md`
-- `docs/TESTING.md`
+- `docs/SECURITY.md`
 - `docs/ROADMAP.md`
 - `README.md`
 - `dev/COMMIT.md`
@@ -18,32 +17,37 @@ Harden GitHub parsing and refresh failure behavior for MVP-014.
 
 ## Acceptance criteria
 
-- Timeout, rate-limit hints, 64-bit IDs, nullable job timestamps, and partial
-  refresh behavior have regression coverage.
-- Existing 304, pagination, malformed JSON, secret-safety, and API golden
-  coverage remains green.
-- Nullable GitHub fields are represented as absent optionals and serialize as
-  JSON `null` where applicable.
-- Documentation records the all-or-nothing candidate policy.
+- Release build compiles with tests disabled.
+- The daemon handles `SIGINT`/`SIGTERM`, stops the HTTP listener, and joins
+  the poller cleanly.
+- Runtime remains non-root, declares `SIGTERM`, and Compose retains no-new-
+  privileges and capability dropping.
+- Healthcheck and deployment documentation match `/healthz` and the runtime
+  configuration.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
 - `ctest --preset dev --output-on-failure` — 38 tests passed.
+- `cmake --preset release && cmake --build --preset release --parallel` —
+  passed.
+- `./build/release/ghinfo --version` — returned `ghinfo 0.1.0`.
+- `actionlint .github/workflows/*.yml` — passed.
+- `docker compose config --quiet` — passed with expected warnings for unset
+  runtime variables.
+- Process smoke test with `SIGTERM` — exited 0.
 - `./scripts/validate.sh` — pending before commit.
-- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
-  `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
-  pending before commit; this executor runs under ptrace and otherwise makes
-  LeakSanitizer abort during test discovery.
 - `git diff --check` — pending before commit.
+- `docker build --tag ghinfo:mvp015 .` — not executed: no Docker daemon or
+  `/var/run/docker.sock` is available in this environment.
 
 ## Compatibility and security
 
-No public API shape changed. The parser remains strict about required fields,
-uses fixed-width IDs, preserves nullability, and keeps upstream response bodies
-out of exception text.
+No public API schema changed. Shutdown handling improves deployment behavior;
+the container still receives GitHub credentials only through runtime
+environment variables and runs without root privileges.
 
 ## Deferred
 
-Production container verification, signal behavior, CI/release work, and the
-final v0.1.0 audit remain.
+The image build must be repeated on a host with Docker enabled before release
+sign-off. CI/release documentation and final MVP audit remain.
