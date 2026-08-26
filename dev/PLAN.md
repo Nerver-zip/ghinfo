@@ -2,49 +2,45 @@
 
 ## Current milestone
 
-**MVP-003 — Authenticated GitHub transport**
+**MVP-004 — Conditional request cache**
 
 Target commit:
 
 ```text
-feat(github): add authenticated REST transport
+feat(github): support conditional requests
 ```
 
 ## Goal
 
-Implement the smallest reusable libcurl-based transport required for later GitHub REST resources.
+Reuse the last successful response for a request path when GitHub returns
+`304 Not Modified`, while retaining fresh response headers such as rate-limit
+metadata.
 
 ## Acceptance criteria
 
-- `GitHubClient` can execute an authenticated GET against a supplied GitHub REST path.
-- The transport always supplies:
-  - `Authorization: Bearer <token>`;
-  - `Accept: application/vnd.github+json`;
-  - pinned `X-GitHub-Api-Version`;
-  - stable `User-Agent`.
-- Connect and total request timeouts are bounded.
-- Response status, body, and selected headers are captured.
-- Transport errors are distinct from non-2xx HTTP responses.
-- The token is not present in user-facing/loggable error messages.
-- Unit tests do not contact GitHub and do not require a real token.
+- A successful response with an ETag is cached per request path.
+- Later requests send `If-None-Match` with the cached ETag.
+- A `304` response returns the cached body and keeps the `304` status visible.
+- Current response headers override cached headers; cached headers fill absent
+  values needed by consumers.
+- A `304` without a cached body is reported as an HTTP failure.
+- Cache entries do not cross request paths.
+- Tests cover the 200 -> 304 lifecycle and changing rate-limit headers.
 
 ## Non-goals
 
 - pagination;
-- ETag caching;
-- issues/PRs/runs/jobs;
-- polling;
-- retries/backoff;
+- issues/PRs/runs/jobs parsing;
+- polling or retries/backoff;
 - public data endpoints.
-
-Those belong to later roadmap milestones.
 
 ## Expected files
 
 - `include/ghinfo/github_client.hpp`
 - `src/github_client.cpp`
 - `tests/github_client_test.cpp`
-- possibly a small local HTTP test helper
+- `docs/ARCHITECTURE.md`
+- `dev/COMMIT.md`
 
 ## Required skills
 

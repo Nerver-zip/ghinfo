@@ -40,6 +40,7 @@ Owns GitHub REST transport semantics:
 - pinned API version;
 - User-Agent;
 - timeouts;
+- per-path ETag cache and conditional requests;
 - JSON parsing;
 - pagination;
 - ETag conditional requests;
@@ -47,6 +48,11 @@ Owns GitHub REST transport semantics:
 - error mapping.
 
 It returns normalized source/domain values or explicit errors. It never exposes the PAT.
+
+Successful responses with an ETag are cached by request path. A later
+`304 Not Modified` reuses the cached body while preserving the current
+response headers, so rate-limit metadata can advance without discarding the
+last usable source state.
 
 ### Poller
 

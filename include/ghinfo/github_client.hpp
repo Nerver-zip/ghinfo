@@ -2,6 +2,7 @@
 
 #include <chrono>
 #include <map>
+#include <mutex>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -37,7 +38,6 @@ struct GitHubResponse {
 
 struct GitHubRequestOptions {
     std::vector<std::string> extra_headers;
-    bool allow_not_modified{false};
 };
 
 struct GitHubClientOptions {
@@ -58,8 +58,15 @@ class GitHubClient {
     static constexpr std::string_view user_agent{"ghinfo/0.1.0"};
 
   private:
+    struct CachedResponse {
+        std::string etag;
+        GitHubResponse response;
+    };
+
     std::string token_;
     GitHubClientOptions options_;
+    mutable std::mutex cache_mutex_;
+    mutable std::map<std::string, CachedResponse> response_cache_;
 };
 
 } // namespace ghinfo
