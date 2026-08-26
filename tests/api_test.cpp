@@ -1,13 +1,22 @@
 #include "ghinfo/server.hpp"
 
+#include <httplib.h>
+
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <arpa/inet.h>
+#include <atomic>
+#include <chrono>
 #include <fstream>
 #include <iterator>
 #include <memory>
 #include <optional>
+#include <stdexcept>
 #include <string>
+#include <sys/socket.h>
+#include <thread>
+#include <unistd.h>
 
 namespace {
 
@@ -71,6 +80,41 @@ std::string read_fixture(const std::string& relative_path) {
     std::ifstream file{std::string{GHINFO_SOURCE_DIR} + "/" + relative_path};
     return {std::istreambuf_iterator<char>{file}, std::istreambuf_iterator<char>{}};
 }
+
+int available_port() {
+    const auto socket_fd = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_fd < 0) {
+        throw std::runtime_error("failed to create test socket");
+    }
+    sockaddr_in address{};
+    address.sin_family = AF_INET;
+    address.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    address.sin_port = htons(0);
+    if (bind(socket_fd, reinterpret_cast<const sockaddr*>(&address), sizeof(address)) != 0) {
+        close(socket_fd);
+        throw std::runtime_error("failed to reserve test port");
+    }
+    socklen_t length = static_cast<socklen_t>(sizeof(address));
+    if (getsockname(socket_fd, reinterpret_cast<sockaddr*>(&address), &length) != 0) {
+        close(socket_fd);
+        throw std::runtime_error("failed to inspect test port");
+    }
+    const auto port = ntohs(address.sin_port);
+    close(socket_fd);
+    return static_cast<int>(port);
+}
+
+struct ApiListenerGuard {
+    ghinfo::ApiServer& api;
+    std::thread& listener;
+
+    ~ApiListenerGuard() {
+        api.stop();
+        if (listener.joinable()) {
+            listener.join();
+        }
+    }
+};
 
 TEST(ApiTest, HealthPayloadIsAlwaysOk) {
     const auto response = ghinfo::make_health_response();
@@ -197,6 +241,94 @@ TEST(ApiTest, MetaIncludesSafePollAndRateLimitState) {
     EXPECT_FALSE(body.at("poll").at("stale").get<bool>());
     EXPECT_EQ(body.at("poll").at("consecutiveFailures"), 0U);
     EXPECT_EQ(body.at("rateLimit").at("remaining"), 4999U);
+}
+
+TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
+    ghinfo::SnapshotStore store;
+    store.publish(sample_snapshot());
+    store.record_poll_success("2026-08-26T20:45:31Z");
+
+    ghinfo::Config config;
+    config.bind_address = "127.0.0.1";
+    config.port = static_cast<std::uint16_t>(available_port());
+    ghinfo::ApiServer api{config, store};
+    std::atomic<bool> listen_finished{false};
+    std::atomic<bool> listen_succeeded{false};
+    std::thread listener{[&] {
+        listen_succeeded.store(api.listen(), std::memory_order_release);
+        listen_finished.store(true, std::memory_order_release);
+    }};
+    ApiListenerGuard listener_guard{api, listener};
+
+    httplib::Client client{"127.0.0.1", static_cast<int>(config.port)};
+    client.set_connection_timeout(0, 200000);
+    httplib::Result health;
+    for (int attempt = 0; attempt < 100 && !health; ++attempt) {
+        health = client.Get("/healthz");
+        if (!health) {
+            std::this_thread::sleep_for(std::chrono::milliseconds{1});
+        }
+    }
+    if (!health) {
+        api.stop();
+        listener.join();
+        FAIL() << "HTTP server did not become reachable";
+    }
+    EXPECT_FALSE(listen_finished.load(std::memory_order_acquire));
+    ASSERT_EQ(health->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(health->body).at("status"), "ok");
+
+    const auto summary = client.Get("/v1/summary");
+    ASSERT_TRUE(summary != nullptr);
+    EXPECT_EQ(summary->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(summary->body).at("issues").at("open"), 2U);
+
+    const auto repos = client.Get("/v1/repos");
+    ASSERT_TRUE(repos != nullptr);
+    EXPECT_EQ(repos->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(repos->body).at("repositories").size(), 2U);
+
+    const auto repo = client.Get("/v1/repos/owner/repo");
+    ASSERT_TRUE(repo != nullptr);
+    EXPECT_EQ(repo->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(repo->body).at("repository").at("fullName"), "owner/repo");
+
+    const auto issues = client.Get("/v1/issues?repo=other%2Frepo");
+    ASSERT_TRUE(issues != nullptr);
+    EXPECT_EQ(issues->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(issues->body).at("issues").size(), 1U);
+
+    const auto pulls = client.Get("/v1/pulls");
+    ASSERT_TRUE(pulls != nullptr);
+    EXPECT_EQ(pulls->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(pulls->body).at("pullRequests").size(), 1U);
+
+    const auto runs = client.Get("/v1/runs?status=queued");
+    ASSERT_TRUE(runs != nullptr);
+    EXPECT_EQ(runs->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(runs->body).at("workflowRuns").size(), 1U);
+
+    const auto jobs = client.Get("/v1/jobs");
+    ASSERT_TRUE(jobs != nullptr);
+    EXPECT_EQ(jobs->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(jobs->body).at("jobs").size(), 1U);
+
+    const auto activity = client.Get("/v1/activity");
+    ASSERT_TRUE(activity != nullptr);
+    EXPECT_EQ(activity->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(activity->body).at("activity").at("failedRuns").size(), 1U);
+
+    const auto invalid = client.Get("/v1/runs?status=invalid");
+    ASSERT_TRUE(invalid != nullptr);
+    EXPECT_EQ(invalid->status, 400);
+
+    const auto missing = client.Get("/v1/repos/unknown/repo");
+    ASSERT_TRUE(missing != nullptr);
+    EXPECT_EQ(missing->status, 404);
+
+    api.stop();
+    listener.join();
+    EXPECT_TRUE(listen_succeeded.load(std::memory_order_acquire));
 }
 
 } // namespace

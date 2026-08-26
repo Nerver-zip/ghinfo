@@ -2,49 +2,39 @@
 
 ## Objective
 
-Prepare CI and tag-triggered release automation for ghinfo v0.1.0.
+Add live HTTP integration coverage for every planned read endpoint and record
+the final MVP audit state.
 
 ## Files changed
 
-- `.github/workflows/ci.yml`
-- `.github/workflows/release.yml`
-- `docs/RELEASE.md`
-- `README.md`
-- `docs/ROADMAP.md`
-- `dev/COMMIT.md`
+- `tests/api_test.cpp`
+- `docs/TESTING.md`
 - `dev/PLAN.md`
+- `dev/COMMIT.md`
 
 ## Acceptance criteria
 
-- CI keeps GCC/Clang, tests, formatting, and diff checks and adds an ASan/UBSan
-  job.
-- A `v*` tag creates a GitHub release with generated notes using the scoped
-  Actions token.
-- The existing tag-aware container workflow remains responsible for GHCR
-  publication.
-- Release documentation is reproducible and secret-safe.
+- A local `ApiServer` is started and queried over HTTP.
+- Summary, repositories, repository detail, issues, pulls, runs, jobs, and
+  activity routes are exercised.
+- Repository/status filtering and `400`/`404` behavior are exercised.
+- Successful route responses, normalized fields, and readiness-independent
+  snapshot serving are verified without GitHub or a PAT.
+- The integration test cleans up the listener even when an assertion fails.
 
 ## Validation
 
-- `actionlint .github/workflows/*.yml` — passed.
-- `docker compose config --quiet` — passed with expected warnings for unset
-  runtime variables.
-- `./scripts/validate.sh` — pending before commit.
-- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
-  `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
-  pending before commit; the local executor requires this LeakSanitizer
-  workaround because tests run under ptrace.
+- `cmake --build --preset dev --parallel` — passed.
+- `ctest --preset dev --output-on-failure` — 39 tests passed.
 - `git diff --check` — pending before commit.
-- `docker build --tag ghinfo:local .` — still unavailable because this
-  environment has no Docker daemon.
+- Canonical and sanitizer validation — rerun after this audit fix.
 
 ## Compatibility and security
 
-No runtime or public API schema changed. The release workflow requests only
-`contents: write`; container publication remains scoped to the existing
-workflow permissions. No PAT or Docker credential is stored in the repository.
+No public schema changed. The test uses loopback and synthetic snapshots only;
+it performs no internet access and contains no credentials.
 
 ## Deferred
 
-Remote CI/release execution, GHCR publication, and Docker image verification
-remain operator/runner outcomes rather than local claims.
+Docker image build and remote GitHub Actions/release verification still require
+external Docker/root and GitHub remote/authentication state.

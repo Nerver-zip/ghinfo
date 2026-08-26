@@ -45,7 +45,7 @@ Once transport lands, use local/fake responses for:
 - `Retry-After`;
 - rate-limit reset hints;
 - malformed JSON;
-- timeout/error mapping.
+- timeout/error mapping;
 - maximum-width 64-bit identifiers and nullable upstream fields;
 
 ### Poller tests
@@ -68,8 +68,9 @@ Cover:
 - health;
 - readiness;
 - meta;
-- status codes/content type;
-- summary/resource contracts.
+- summary, resources, and activity;
+- filters plus `400`/`404`/`503` status behavior;
+- content type and normalized JSON contracts over a local HTTP server.
 
 ### Golden API tests
 
