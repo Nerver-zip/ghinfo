@@ -2,52 +2,49 @@
 
 ## Objective
 
-Harden the production container runtime and process shutdown for MVP-015.
+Prepare CI and tag-triggered release automation for ghinfo v0.1.0.
 
 ## Files changed
 
-- `src/main.cpp`
-- `Dockerfile`
-- `docs/ARCHITECTURE.md`
-- `docs/SECURITY.md`
-- `docs/ROADMAP.md`
+- `.github/workflows/ci.yml`
+- `.github/workflows/release.yml`
+- `docs/RELEASE.md`
 - `README.md`
+- `docs/ROADMAP.md`
 - `dev/COMMIT.md`
 - `dev/PLAN.md`
 
 ## Acceptance criteria
 
-- Release build compiles with tests disabled.
-- The daemon handles `SIGINT`/`SIGTERM`, stops the HTTP listener, and joins
-  the poller cleanly.
-- Runtime remains non-root, declares `SIGTERM`, and Compose retains no-new-
-  privileges and capability dropping.
-- Healthcheck and deployment documentation match `/healthz` and the runtime
-  configuration.
+- CI keeps GCC/Clang, tests, formatting, and diff checks and adds an ASan/UBSan
+  job.
+- A `v*` tag creates a GitHub release with generated notes using the scoped
+  Actions token.
+- The existing tag-aware container workflow remains responsible for GHCR
+  publication.
+- Release documentation is reproducible and secret-safe.
 
 ## Validation
 
-- `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 38 tests passed.
-- `cmake --preset release && cmake --build --preset release --parallel` —
-  passed.
-- `./build/release/ghinfo --version` — returned `ghinfo 0.1.0`.
 - `actionlint .github/workflows/*.yml` — passed.
 - `docker compose config --quiet` — passed with expected warnings for unset
   runtime variables.
-- Process smoke test with `SIGTERM` — exited 0.
 - `./scripts/validate.sh` — pending before commit.
+- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
+  `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
+  pending before commit; the local executor requires this LeakSanitizer
+  workaround because tests run under ptrace.
 - `git diff --check` — pending before commit.
-- `docker build --tag ghinfo:mvp015 .` — not executed: no Docker daemon or
-  `/var/run/docker.sock` is available in this environment.
+- `docker build --tag ghinfo:local .` — still unavailable because this
+  environment has no Docker daemon.
 
 ## Compatibility and security
 
-No public API schema changed. Shutdown handling improves deployment behavior;
-the container still receives GitHub credentials only through runtime
-environment variables and runs without root privileges.
+No runtime or public API schema changed. The release workflow requests only
+`contents: write`; container publication remains scoped to the existing
+workflow permissions. No PAT or Docker credential is stored in the repository.
 
 ## Deferred
 
-The image build must be repeated on a host with Docker enabled before release
-sign-off. CI/release documentation and final MVP audit remain.
+Remote CI/release execution, GHCR publication, and Docker image verification
+remain operator/runner outcomes rather than local claims.

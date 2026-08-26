@@ -75,6 +75,8 @@ resilient background poller through **MVP-011**. The next milestone is
 **MVP-016: CI/release v0.1.0**. See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 
+Release instructions are in [`docs/RELEASE.md`](docs/RELEASE.md).
+
 ## Quick start
 
 ### Requirements
