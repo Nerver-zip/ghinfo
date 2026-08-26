@@ -2,14 +2,13 @@
 
 ## Objective
 
-Expose the normalized snapshot through the stable v1 read API for MVP-012.
+Add the objective, consumer-neutral `/v1/activity` view for MVP-013.
 
 ## Files changed
 
 - `include/ghinfo/server.hpp`
 - `src/server.cpp`
 - `tests/api_test.cpp`
-- `tests/golden/summary.json`
 - `docs/API.md`
 - `docs/ROADMAP.md`
 - `README.md`
@@ -18,20 +17,17 @@ Expose the normalized snapshot through the stable v1 read API for MVP-012.
 
 ## Acceptance criteria
 
-- `/v1/summary` reports deterministic aggregate counts.
-- Repository, issue, pull request, workflow run, and workflow job resources
-  are exposed as normalized JSON arrays/objects.
-- Repository filters and run status/conclusion filters are supported and
-  invalid filters return bounded client errors.
-- Data endpoints return `503 snapshot_unavailable` without a snapshot.
-- Meta includes safe poll and rate-limit state.
-- Golden and focused tests cover schema, normalization, nullable fields, and
-  filtering.
+- `/v1/activity` exposes running jobs, failed runs, open pull requests, and
+  open issues from the immutable snapshot.
+- Activity contains no priority, score, confidence, or UI-specific fields.
+- The endpoint preserves the standard version/timestamp/stale envelope and
+  returns `503 snapshot_unavailable` before readiness.
+- Focused tests cover objective grouping and forbidden presentation fields.
 
 ## Validation
 
 - `cmake --build --preset dev --parallel` — passed.
-- `ctest --preset dev --output-on-failure` — 33 tests passed.
+- `ctest --preset dev --output-on-failure` — 34 tests passed.
 - `./scripts/validate.sh` — pending before commit.
 - `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan` and
   `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
@@ -41,11 +37,10 @@ Expose the normalized snapshot through the stable v1 read API for MVP-012.
 
 ## Compatibility and security
 
-This is an additive v1 API implementation. Handlers read only immutable
-snapshots and operational state; they never invoke GitHub or expose tokens,
-raw upstream bodies, or raw exception messages.
+This is an additive v1 endpoint. It reads only the immutable snapshot and
+does not create GitHub traffic or expose credentials.
 
 ## Deferred
 
-Activity aggregation, final container hardening, signal behavior, and release
-automation remain assigned to later milestones.
+Failure hardening, final container verification, signal behavior, CI/release
+work, and the v0.1.0 audit remain.

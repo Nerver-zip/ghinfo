@@ -2,49 +2,43 @@
 
 ## Current milestone
 
-**MVP-012 — Core read API**
+**MVP-013 — Activity view**
 
 Target commit:
 
 ```text
-feat(api): expose normalized status resources
+feat(api): add aggregated activity endpoint
 ```
 
 ## Goal
 
-Expose stable, consumer-agnostic JSON for the complete immutable snapshot,
-with deterministic normalization, safe readiness behavior, and bounded
-resource filters.
+Add a consumer-neutral activity view composed only from objective state already
+present in the immutable snapshot.
 
 ## Acceptance criteria
 
-- `/v1/summary` reports deterministic repository, issue, pull request, and
-  workflow counts.
-- `/v1/repos` and `/v1/repos/{owner}/{repo}` expose normalized repository
-  state and retained related resources.
-- `/v1/issues`, `/v1/pulls`, `/v1/runs`, and `/v1/jobs` expose normalized arrays.
-- `repo` filtering works for issue, pull, run, and job resources; run status
-  and conclusion filters accept only documented enum strings.
-- Data endpoints return `503 snapshot_unavailable` before the first complete
-  poll and never call GitHub.
-- Public enum values are explicit strings; nullable upstream values remain
-  JSON `null`, not fabricated values.
-- Golden and focused API tests cover schema, normalization, filtering, and
-  unavailable state.
+- `GET /v1/activity` returns `runningJobs`, `failedRuns`, `pullRequests`, and
+  `issues` groups.
+- Groups contain normalized resource payloads and deterministic ordering from
+  the snapshot.
+- No priority, confidence, score, display, or consumer-specific fields are
+  introduced.
+- The endpoint returns `503 snapshot_unavailable` before the first complete
+  poll and never triggers GitHub traffic.
+- Tests cover inclusion, exclusion, schema version, and stale metadata.
 
 ## Non-goals
 
-- activity aggregation;
-- pagination of the local API;
-- authentication for consumers;
-- presentation-specific priority or UI fields.
+- ranking or prioritization;
+- recommendation logic;
+- notifications or event streaming;
+- local API pagination.
 
 ## Expected files
 
 - `include/ghinfo/server.hpp`
 - `src/server.cpp`
 - `tests/api_test.cpp`
-- `tests/golden/summary.json`
 - `docs/API.md`
 - `docs/ROADMAP.md`
 - `README.md`
