@@ -78,6 +78,13 @@ signal.
 
 Secrets are supplied only at runtime.
 
+## Secret scanning
+
+The CI workflow runs Gitleaks against the complete repository history on every
+push, pull request, and manual workflow dispatch. The scan job has read-only
+repository permissions, does not publish pull-request comments or artifacts,
+and does not receive the application PAT. A finding fails the CI workflow.
+
 ## Reporting vulnerabilities
 
 Until a formal security policy exists, use a private communication channel with the repository owner rather than opening an issue containing secrets.

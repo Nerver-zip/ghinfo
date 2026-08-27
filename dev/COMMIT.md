@@ -2,38 +2,39 @@
 
 ## Objective
 
-Configure ccache for C++ CI jobs and the Docker builder without changing the
-runtime image or application data model.
+Add repository-history secret scanning with Gitleaks and keep the handoff as a
+record of implementation and evidence rather than an operator checklist.
 
 ## Files changed
 
 - `.github/workflows/ci.yml`
-- `.github/workflows/docker.yml`
-- `Dockerfile`
-- `docs/DEVELOPMENT.md`
-- `dev/PLAN.md`
+- `docs/SECURITY.md`
 - `dev/COMMIT.md`
 
 ## Acceptance criteria
 
-- GCC, Clang, and ASan CI jobs install and restore separate ccache archives.
-- CMake receives compiler-launcher settings explicitly in each C++ job.
-- The container build has a BuildKit ccache mount and GitHub Actions layer
-  cache configuration.
-- The release-only workflow remains unchanged because it has no compile step.
-- Runtime behavior, image user, secrets, and public API remain unchanged.
+- A dedicated Gitleaks job runs on push, pull request, and manual CI runs.
+- The scan checks complete Git history through a full repository checkout.
+- The scan job has read-only repository permissions and does not publish
+  comments or artifacts.
+- The application PAT is not exposed to the scan job.
+- No runtime behavior, public API, or Docker image content changes.
 
 ## Validation
 
+- `actionlint .github/workflows/*.yml` — passed.
+- `./scripts/validate.sh` — passed; 45/45 tests passed.
+- `gitleaks git --redact --no-banner` — passed; 31 commits scanned and no
+  leaks found.
 - `git diff --check` — passed.
-- `actionlint .github/workflows/*.yml` — pending after workflow changes.
+- Docker build — not executed in this environment because the Docker daemon
+  socket is unavailable.
 
 ## Compatibility and security
 
-No public HTTP schema changed. ccache is a build-only accelerator and is not
-copied into the runtime image.
+No public HTTP schema changed. Gitleaks is CI-only and uses the workflow's
+read-only `GITHUB_TOKEN`; the application PAT remains outside the scan job.
 
-## Deferred
+## External state
 
-Run the canonical test/build gate and Docker build validation after this
-workflow change. Remote cache hit rates require a GitHub Actions run.
+Remote CI execution and remote tag publication are outside this local change.
