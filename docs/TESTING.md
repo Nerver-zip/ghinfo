@@ -48,6 +48,8 @@ Once transport lands, use local/fake responses for:
 - timeout/error mapping;
 - maximum-width 64-bit identifiers, nullable upstream fields, invalid UTC
   timestamps, and mismatched repository identities;
+- automatic repository discovery, Link-header pagination, malformed names,
+  and duplicate repository detection;
 
 ### Poller tests
 

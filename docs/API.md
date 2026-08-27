@@ -119,7 +119,7 @@ Target example:
 
 ### `GET /v1/repos`
 
-Normalized configured repositories. The response contains `schemaVersion`,
+Normalized configured or discovered repositories. The response contains `schemaVersion`,
 `generation`, `generatedAt`, and a `repositories` array.
 
 ### `GET /v1/repos/{owner}/{repo}`

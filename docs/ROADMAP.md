@@ -10,7 +10,8 @@ The MVP is complete when:
 
 - a container starts from environment-only configuration;
 - a fine-grained PAT remains server-side;
-- selected repositories are polled independently of consumers;
+- selected or automatically discovered repositories are polled independently
+  of consumers;
 - open issues and PRs are normalized;
 - workflow runs and relevant jobs are normalized;
 - conditional requests reduce unnecessary GitHub traffic;
@@ -230,6 +231,23 @@ Acceptance:
 Status: CI sanitizer coverage and tag-triggered release automation are
 implemented. Publishing remains an explicit operator action after Docker
 build verification.
+
+### MVP-017 — Automatic repository discovery
+
+**Commit:** `feat(github): discover accessible repositories`
+
+Acceptance:
+
+- `GHINFO_REPOSITORIES=auto` selects all repositories returned by GitHub's
+  authenticated `/user/repos` endpoint;
+- repository discovery follows bounded Link-header pagination;
+- discovered repository names are validated and duplicate entries fail the
+  refresh safely;
+- explicit comma-separated repository lists remain supported;
+- discovery participates in the complete snapshot transaction.
+
+Status: delivered locally with deterministic positive, malformed, duplicate,
+pagination, and snapshot-integration tests.
 
 ## Post-MVP candidates
 

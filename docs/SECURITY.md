@@ -26,7 +26,10 @@ consumer -> ghinfo HTTP API
 - Never commit `.env`.
 - Do not include real tokens in fixtures/tests.
 
-Use a fine-grained PAT restricted to selected repositories with the minimum read permissions necessary for Metadata, Issues, Pull requests, and Actions.
+Use a fine-grained PAT restricted to the repositories ghinfo should observe
+with the minimum read permissions necessary for Metadata, Issues, Pull
+requests, and Actions. Automatic discovery only returns repositories visible
+to that token; it does not expand the token's authority.
 
 ## HTTP exposure
 

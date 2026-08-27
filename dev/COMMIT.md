@@ -2,40 +2,40 @@
 
 ## Objective
 
-Discover all repositories accessible to the authenticated GitHub user when
-`GHINFO_REPOSITORIES=auto`, while preserving explicit repository lists.
+Document automatic repository discovery and its Fine-grained PAT boundary.
 
 ## Files changed
 
-- `include/ghinfo/config.hpp`
-- `include/ghinfo/github_client.hpp`
-- `src/config.cpp`
-- `src/github_client.cpp`
-- `src/snapshot_builder.cpp`
-- `tests/config_test.cpp`
-- `tests/github_client_test.cpp`
-- `tests/snapshot_builder_test.cpp`
+- `.env.example`
+- `README.md`
+- `docs/ARCHITECTURE.md`
+- `docs/API.md`
+- `docs/SECURITY.md`
+- `docs/TESTING.md`
+- `docs/ROADMAP.md`
+- `dev/PLAN.md`
+- `dev/COMMIT.md`
 
 ## Acceptance criteria
 
-- `auto` is an explicit repository-selection mode; manual lists remain valid.
-- `/user/repos` requests use bounded pages and GitHub Link-header pagination.
-- Discovered `full_name` values are validated and duplicates are rejected.
-- Discovery is part of snapshot construction, so refresh failure preserves the
-  last-known-good snapshot through the existing poller policy.
-- Positive, malformed, duplicate, and snapshot-integration cases are covered.
+- Configuration shows `auto` and the explicit list alternative.
+- Documentation states that discovery is limited by the PAT's repository access.
+- Architecture, API, testing, roadmap, and active-plan docs describe the mode.
+- Existing public HTTP schema remains unchanged.
 
 ## Validation
 
-- `cmake --build --preset dev --parallel` and `ctest --preset dev
-  --output-on-failure` — 45 tests passed.
+- Post-implementation `ctest --preset dev --output-on-failure` — 45 tests
+  passed.
 - `git diff --check` — passed.
 
 ## Compatibility and security
 
-No public HTTP schema changed. The new request only reads repository metadata;
-the PAT remains server-side and tests use loopback synthetic payloads.
+No public HTTP schema changed. Documentation clarifies that the new read-only
+discovery request is constrained by the PAT; no credential is included.
 
 ## Deferred
 
-Full sanitizer/release validation follows the focused implementation commit.
+Full sanitizer/release validation was already completed for the same code
+before the documentation commit. Docker build and remote GitHub verification
+remain external gates.

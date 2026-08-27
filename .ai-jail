@@ -1,0 +1,28 @@
+# ai-jail sandbox configuration
+# https://github.com/akitaonrails/ai-jail
+# Edit freely. Regenerate with: ai-jail --clean --init
+
+command = ["codex"]
+rw_maps = ["~/.codex", "~/.gemini"]
+# User-installed CLI tools are available read-only; the rest of ~/.local stays private.
+ro_maps = ["~/.local/bin", "~/.local/share/claude"]
+mask = [
+    ".env",
+    ".env.local",
+    ".env.*.local",
+    "credentials.json",
+    "secrets.yml",
+    "secrets.yaml",
+]
+
+no_status_bar = true
+no_gpu = true
+no_docker = true
+no_display = false
+no_mise = true
+private_home = true
+# Keep this checked-in policy portable and stable across runs/users.
+no_save_config = true
+
+network = true
+agent_state = true

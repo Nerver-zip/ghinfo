@@ -25,7 +25,7 @@ Reads and validates environment variables once during startup.
 Important values:
 
 - PAT;
-- selected repositories;
+- explicit repository list or automatic discovery mode;
 - polling interval;
 - bind/port;
 - run history bound.
@@ -49,6 +49,10 @@ Owns GitHub REST transport semantics:
 
 It returns normalized source/domain values or explicit errors. It never exposes the PAT.
 
+In automatic discovery mode it lists accessible repositories through GitHub's
+`/user/repos` endpoint, follows bounded Link-header pagination, and validates
+each returned `full_name` before repository resources are fetched.
+
 Successful responses with an ETag are cached by request path. A later
 `304 Not Modified` reuses the cached body while preserving the current
 response headers, so rate-limit metadata can advance without discarding the
@@ -61,7 +65,7 @@ Runs independently of incoming API traffic.
 The refresh loop:
 
 ```text
-refresh configured repositories
+select configured repositories or discover accessible repositories
   |
 build complete candidate snapshot
   |
@@ -80,9 +84,9 @@ and failure backoff waits.
 
 The first successful complete poll makes `/readyz` return ready.
 
-Refresh construction is all-or-nothing across configured repositories: if any
-repository request or normalization step fails, the candidate is discarded
-and the prior snapshot remains published.
+Refresh construction is all-or-nothing across the selected or discovered
+repositories: if discovery, any repository request, or any normalization step
+fails, the candidate is discarded and the prior snapshot remains published.
 
 ### SnapshotStore
 
@@ -121,7 +125,7 @@ Normalization protects consumers from upstream payload churn and avoids making g
 
 MVP intent:
 
-- all open issues;
+- all open issues for each configured or discovered repository;
 - all open pull requests;
 - bounded recent workflow runs;
 - jobs only for runs useful to current status (queued/running/failed/etc.).
