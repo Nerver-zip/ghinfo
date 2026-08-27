@@ -135,7 +135,11 @@ std::string to_string(LogLevel level) {
 Config load_config_from_environment() {
     Config config;
     config.github_token = getenv_required("GHINFO_GITHUB_TOKEN");
-    config.repositories = parse_repositories(getenv_required("GHINFO_REPOSITORIES"));
+    const auto repository_value = getenv_required("GHINFO_REPOSITORIES");
+    config.repository_selection = parse_repository_selection(repository_value);
+    if (config.repository_selection == RepositorySelection::explicit_list) {
+        config.repositories = parse_repositories(repository_value);
+    }
 
     config.poll_interval_seconds = parse_integer<std::uint32_t>(
         getenv_or("GHINFO_POLL_INTERVAL_SECONDS", "60"), "GHINFO_POLL_INTERVAL_SECONDS", 5U, 3600U);
@@ -152,6 +156,11 @@ Config load_config_from_environment() {
                                                       "GHINFO_RUN_HISTORY", 1U, 100U);
 
     return config;
+}
+
+RepositorySelection parse_repository_selection(const std::string& value) {
+    return value == "auto" ? RepositorySelection::discover_all
+                            : RepositorySelection::explicit_list;
 }
 
 } // namespace ghinfo

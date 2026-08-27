@@ -17,7 +17,10 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
     snapshot.generated_at = std::move(generated_at);
     snapshot.last_successful_poll = snapshot.generated_at;
 
-    for (const auto& repository_ref : config.repositories) {
+    const auto repositories = config.repository_selection == RepositorySelection::discover_all
+                                  ? github.fetch_accessible_repositories()
+                                  : config.repositories;
+    for (const auto& repository_ref : repositories) {
         snapshot.repositories.push_back(github.fetch_repository(repository_ref));
 
         auto issues = github.fetch_open_issues(repository_ref);

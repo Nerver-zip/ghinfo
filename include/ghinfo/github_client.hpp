@@ -65,6 +65,7 @@ class GitHubClient {
     [[nodiscard]] std::vector<WorkflowJob>
     fetch_relevant_workflow_jobs(const RepositoryRef& repository, const WorkflowRun& run) const;
     [[nodiscard]] Repository fetch_repository(const RepositoryRef& repository) const;
+    [[nodiscard]] std::vector<RepositoryRef> fetch_accessible_repositories() const;
     [[nodiscard]] std::optional<RateLimit> rate_limit() const;
     [[nodiscard]] std::optional<std::uint64_t> retry_after_seconds() const;
     [[nodiscard]] std::optional<std::uint64_t> rate_limit_reset_epoch_seconds() const;
