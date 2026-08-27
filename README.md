@@ -70,9 +70,10 @@ The scaffold already provides:
 - architecture, API, security, testing, development, and MVP roadmap docs.
 
 The implementation covers authenticated transport, conditional requests,
-normalized GitHub resources, complete snapshots, a resilient background
-poller, the full v1 read API, activity aggregation, runtime hardening, and
-CI/release automation through **MVP-016**. The remaining release action is to
+normalized GitHub resources, automatic or explicit repository selection,
+complete snapshots, a resilient background poller, the full v1 read API,
+activity aggregation, runtime hardening, and CI/release automation through
+**MVP-017**. The remaining release action is to
 run the Docker build on a host with an active daemon, then tag/push `v0.1.0`.
 See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
@@ -127,7 +128,8 @@ Edit:
 
 ```dotenv
 GHINFO_GITHUB_TOKEN=github_pat_...
-GHINFO_REPOSITORIES=Nerver-zip/chess-tactics,Nerver-zip/chess-saas
+GHINFO_REPOSITORIES=auto
+# Or use a comma-separated list: owner/repo-a,owner/repo-b
 ```
 
 Then:
@@ -161,7 +163,7 @@ The image runs as a non-root user.
 | Variable | Required | Default | Purpose |
 |---|---:|---|---|
 | `GHINFO_GITHUB_TOKEN` | yes | — | Fine-grained GitHub PAT |
-| `GHINFO_REPOSITORIES` | yes | — | Comma-separated `owner/repo` list |
+| `GHINFO_REPOSITORIES` | yes | — | `auto` or comma-separated `owner/repo` list |
 | `GHINFO_POLL_INTERVAL_SECONDS` | no | `60` | Base polling interval |
 | `GHINFO_BIND` | no | `127.0.0.1` | HTTP bind address |
 | `GHINFO_PORT` | no | `8080` | HTTP port |
@@ -172,7 +174,8 @@ For Docker/Compose, set `GHINFO_BIND=0.0.0.0`.
 
 ## GitHub token permissions
 
-The intended MVP is read-only. Use a fine-grained PAT restricted to only the repositories that ghinfo should observe, with read access for:
+The intended MVP is read-only. Use a fine-grained PAT restricted to the
+repositories that ghinfo should observe, with read access for:
 
 - Metadata
 - Issues
@@ -180,6 +183,12 @@ The intended MVP is read-only. Use a fine-grained PAT restricted to only the rep
 - Actions
 
 Never commit the token. `.env` is ignored.
+
+With `GHINFO_REPOSITORIES=auto`, ghinfo discovers the repositories returned by
+GitHub for the authenticated user, including repositories where the token has
+the necessary access. The discovery is refreshed on every polling cycle, so
+newly accessible repositories are picked up without a restart. A token cannot
+discover repositories it was not granted access to.
 
 ## Repository layout
 

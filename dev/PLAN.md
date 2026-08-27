@@ -2,7 +2,7 @@
 
 ## Current state
 
-The implementation milestones through MVP-016 are complete in the local
+The implementation milestones through MVP-017 are complete in the local
 checkout. Final goal closure is waiting only for external verification that
 cannot be performed in this environment.
 
@@ -16,6 +16,8 @@ cannot be performed in this environment.
   host with Docker and a configured GitHub remote.
 - Upstream timestamps and repository identity are rejected when they violate
   the normalized domain contract.
+- Automatic repository discovery is paginated, validated, and integrated into
+  complete snapshot construction.
 - No tag or remote release is created without those external gates.
 
 ## Current external blockers
