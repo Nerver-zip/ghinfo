@@ -75,6 +75,18 @@ Cover:
 - filters plus `400`/`404`/`503` status behavior;
 - content type and normalized JSON contracts over a local HTTP server.
 
+### Planned prioritized activity tests
+
+Before implementation, add deterministic coverage for:
+
+- default and bounded `limit` behavior;
+- invalid, zero, and over-limit values returning `400`;
+- failed runs and failed jobs receiving the intended activity kinds;
+- issue/PR `title` and run/job `name` surviving projection;
+- recency and stable tie-break ordering;
+- repeated reads returning the same items without acknowledgement or mutation;
+- stale snapshots remaining readable with the same ordering rules.
+
 ### Golden API tests
 
 Keep representative stable JSON documents under `tests/golden/`.

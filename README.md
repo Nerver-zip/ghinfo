@@ -25,6 +25,9 @@ A tiny, headless, self-hosted GitHub status service.
 - No notifications, analytics history, SSE, or WebSockets.
 - No Prometheus dependency.
 
+Prioritized activity is a post-MVP design target. It will remain a read-only
+snapshot projection rather than a notification queue.
+
 ## Planned architecture
 
 ```text

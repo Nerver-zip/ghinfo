@@ -255,9 +255,17 @@ Only after usage demonstrates need:
 
 ### v0.2
 
+- prioritized activity projection with bounded `?limit=N` reads, explainable
+  priority bands, failed-job items, and deterministic ordering;
 - richer filtering;
 - optional self-API bearer token;
 - per-resource polling cadence.
+
+The prioritized activity projection must be preceded by an ADR. It remains a
+read-only snapshot view: no acknowledgements, per-consumer queues,
+notifications, or opaque numeric score are introduced. “New since the previous
+poll” requires an explicit state/persistence decision and is not part of the
+initial projection.
 
 ### v0.3
 

@@ -37,3 +37,20 @@ git push origin main v0.1.0
 ```
 
 The tag/push commands are intentionally not executed by this local run.
+
+## Next planned milestone after MVP
+
+Design and implement a prioritized activity projection as an additive
+extension to `/v1/activity`:
+
+- approve an ADR for priority bands and explainable signals;
+- add `?limit=N` with a safe default and maximum;
+- derive ordered items during snapshot construction;
+- preserve the existing grouped activity fields;
+- include issue/PR titles and run/job names;
+- represent failed jobs separately from failed workflow runs;
+- keep reads non-consuming and consumer-agnostic;
+- defer `firstSeenAt` semantics until state lifetime/persistence is decided.
+
+The implementation should remain in-memory and should not add SQLite, a broker,
+notifications, or per-consumer acknowledgement state.
