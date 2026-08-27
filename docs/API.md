@@ -197,8 +197,56 @@ Response shape:
 ```
 
 This endpoint must not invent priority, confidence, score, or display
-decisions. It returns `503 snapshot_unavailable` before the first complete
-poll.
+decisions in the current v1 contract. It returns `503 snapshot_unavailable`
+before the first complete poll.
+
+### Planned additive extension: prioritized activity
+
+The next planned activity projection keeps the existing grouped arrays and
+adds an ordered `items` array. Consumers may request a bounded number of items
+with `GET /v1/activity?limit=N`.
+
+Proposed rules:
+
+- omitted `limit` defaults to `20`;
+- valid `limit` values are `1` through `100`;
+- invalid values return `400` with `invalid_limit`;
+- ordering is calculated from the immutable snapshot, never by a GitHub call;
+- ties are resolved deterministically by recency, repository, kind, and stable
+  resource ID;
+- `priority` is an explicit stable string, not an opaque numeric score;
+- items include a human-readable `title` for issues/PRs and `name` for runs/jobs;
+- failed workflow runs and failed jobs are represented distinctly;
+- no item is acknowledged, removed, or reserved when read.
+
+Illustrative future shape:
+
+```json
+{
+  "activity": {
+    "items": [
+      {
+        "id": "run:owner/repo:123",
+        "kind": "failed_run",
+        "priority": "high",
+        "signals": ["failed_run", "recent"],
+        "repository": "owner/repo",
+        "name": "CI",
+        "occurredAt": "2026-08-27T01:10:00Z",
+        "updatedAt": "2026-08-27T01:12:00Z",
+        "url": "https://github.com/owner/repo/actions/runs/123"
+      }
+    ],
+    "total": 1,
+    "limit": 10
+  }
+}
+```
+
+This is a design target, not part of the current response until its priority
+rules are approved in an ADR. “Newly observed since the previous poll” also
+requires `firstSeenAt` state and is deferred; creation/update recency can be
+used without persistence.
 
 ## Versioning policy
 

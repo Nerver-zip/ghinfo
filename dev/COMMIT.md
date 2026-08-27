@@ -2,15 +2,14 @@
 
 ## Objective
 
-Document automatic repository discovery and its Fine-grained PAT boundary.
+Document the planned prioritized activity projection and its lightweight
+read-only contract.
 
 ## Files changed
 
-- `.env.example`
 - `README.md`
 - `docs/ARCHITECTURE.md`
 - `docs/API.md`
-- `docs/SECURITY.md`
 - `docs/TESTING.md`
 - `docs/ROADMAP.md`
 - `dev/PLAN.md`
@@ -18,24 +17,23 @@ Document automatic repository discovery and its Fine-grained PAT boundary.
 
 ## Acceptance criteria
 
-- Configuration shows `auto` and the explicit list alternative.
-- Documentation states that discovery is limited by the PAT's repository access.
-- Architecture, API, testing, roadmap, and active-plan docs describe the mode.
-- Existing public HTTP schema remains unchanged.
+- The next milestone is explicitly post-MVP and requires an ADR.
+- The API proposal uses additive `activity.items` and bounded `?limit=N`.
+- Priority, recency, titles/names, failed jobs, and deterministic ties are
+  specified without introducing queue acknowledgement semantics.
+- Current public HTTP behavior remains unchanged.
 
 ## Validation
 
-- Post-implementation `ctest --preset dev --output-on-failure` — 45 tests
-  passed.
 - `git diff --check` — passed.
 
 ## Compatibility and security
 
-No public HTTP schema changed. Documentation clarifies that the new read-only
-discovery request is constrained by the PAT; no credential is included.
+No public HTTP schema changed; this commit documents a future additive
+extension only. No credentials or runtime behavior were changed.
 
 ## Deferred
 
-Full sanitizer/release validation was already completed for the same code
-before the documentation commit. Docker build and remote GitHub verification
-remain external gates.
+Runtime tests are not required for this documentation-only change; the prior
+45-test implementation baseline remains the reference. Docker build and
+remote GitHub verification remain external gates.

@@ -106,6 +106,20 @@ Serves JSON from `SnapshotStore`.
 
 Handlers must not know the PAT and must never invoke `GitHubClient`.
 
+### Planned activity projection
+
+The current `/v1/activity` response exposes objective resource groups without
+priority. A planned post-MVP projection will derive a bounded, ordered list of
+attention items while the complete snapshot is being built. HTTP handlers will
+only slice the immutable list for `?limit=N`; reads will not consume items and
+will not maintain per-consumer state.
+
+The projection will use domain fields already normalized by ghinfo: `title` for
+issues and pull requests, `name` for workflow runs and jobs, stable IDs, and
+UTC timestamps. It will expose explainable priority bands and signals instead
+of a consumer-facing opaque score. “New since last observation” is deferred
+until first-seen state has an explicit lifetime/persistence policy.
+
 ## Domain model
 
 The public model is intentionally smaller than GitHub's REST payloads.
