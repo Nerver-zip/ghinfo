@@ -2,47 +2,40 @@
 
 ## Objective
 
-Reject malformed upstream timestamps and repository identity mismatches at the
-GitHub boundary, with regression coverage.
+Discover all repositories accessible to the authenticated GitHub user when
+`GHINFO_REPOSITORIES=auto`, while preserving explicit repository lists.
 
 ## Files changed
 
+- `include/ghinfo/config.hpp`
+- `include/ghinfo/github_client.hpp`
+- `src/config.cpp`
 - `src/github_client.cpp`
+- `src/snapshot_builder.cpp`
+- `tests/config_test.cpp`
 - `tests/github_client_test.cpp`
-- `docs/TESTING.md`
-- `dev/PLAN.md`
-- `dev/COMMIT.md`
+- `tests/snapshot_builder_test.cpp`
 
 ## Acceptance criteria
 
-- GitHub timestamps are constrained to the public UTC ISO-8601 form.
-- Repository responses must identify the requested repository.
-- Invalid timestamp and identity payloads are reported as semantic errors.
-- Existing live HTTP endpoint coverage remains green.
+- `auto` is an explicit repository-selection mode; manual lists remain valid.
+- `/user/repos` requests use bounded pages and GitHub Link-header pagination.
+- Discovered `full_name` values are validated and duplicates are rejected.
+- Discovery is part of snapshot construction, so refresh failure preserves the
+  last-known-good snapshot through the existing poller policy.
+- Positive, malformed, duplicate, and snapshot-integration cases are covered.
 
 ## Validation
 
-- `./scripts/validate.sh` — passed.
 - `cmake --build --preset dev --parallel` and `ctest --preset dev
-  --output-on-failure` — 40 tests passed.
-- `LSAN_OPTIONS=detect_leaks=0 cmake --build --preset asan --parallel` and
-  `LSAN_OPTIONS=detect_leaks=0 ctest --preset asan --output-on-failure` —
-  40 tests passed. LeakSanitizer remained disabled because this host does not
-  permit the sanitizer runtime's ptrace operation.
-- `cmake --preset release && cmake --build --preset release --parallel` —
-  passed.
-- `actionlint .github/workflows/*.yml` — passed.
-- `docker compose config --quiet` — passed with expected warnings for unset
-  runtime variables.
+  --output-on-failure` — 45 tests passed.
 - `git diff --check` — passed.
 
 ## Compatibility and security
 
-No public schema changed. The parser only rejects malformed untrusted upstream
-data; tests use loopback and synthetic payloads without credentials.
+No public HTTP schema changed. The new request only reads repository metadata;
+the PAT remains server-side and tests use loopback synthetic payloads.
 
 ## Deferred
 
-Docker image build and remote GitHub Actions/release verification still require
-external Docker/root and GitHub remote/authentication state. The current
-checkout has no configured Git remote and `gh` is unauthenticated.
+Full sanitizer/release validation follows the focused implementation commit.

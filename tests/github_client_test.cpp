@@ -277,6 +277,95 @@ TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
     }
 }
 
+TEST(GitHubClientTest, FetchesAllAccessibleRepositoriesAcrossPages) {
+    LocalHttpServer server;
+    std::atomic<int> request_count{0};
+    server.server().Get("/user/repos", [&](const httplib::Request& request,
+                                            httplib::Response& response) {
+        ++request_count;
+        if (request.get_param_value("visibility") != "all" ||
+            request.get_param_value("affiliation") != "owner,collaborator,organization_member" ||
+            request.get_param_value("sort") != "full_name" ||
+            request.get_param_value("direction") != "asc" ||
+            request.get_param_value("per_page") != "100") {
+            response.status = 400;
+            return;
+        }
+        if (request.get_param_value("page") == "1") {
+            response.set_header("Link", "<http://example.test/user/repos?page=2>; rel=\"next\"");
+            response.set_content(R"([{"full_name":"z/repo"},{"full_name":"a/repo"}])",
+                                 "application/json");
+            return;
+        }
+        if (request.get_param_value("page") == "2") {
+            response.set_content(R"([{"full_name":"org/project"}])", "application/json");
+            return;
+        }
+        response.status = 400;
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto repositories = client.fetch_accessible_repositories();
+
+    ASSERT_EQ(request_count.load(), 2);
+    ASSERT_EQ(repositories.size(), 3U);
+    EXPECT_EQ(repositories[0].full_name(), "z/repo");
+    EXPECT_EQ(repositories[1].full_name(), "a/repo");
+    EXPECT_EQ(repositories[2].full_name(), "org/project");
+}
+
+TEST(GitHubClientTest, RejectsMalformedAccessibleRepositoryPayload) {
+    LocalHttpServer server;
+    server.server().Get("/user/repos", [](const httplib::Request&, httplib::Response& response) {
+        response.set_content(R"([{"full_name":"not a repository"}])", "application/json");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    try {
+        (void)client.fetch_accessible_repositories();
+        FAIL() << "expected malformed repository list error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::semantic);
+    }
+}
+
+TEST(GitHubClientTest, RejectsDuplicateAccessibleRepositories) {
+    LocalHttpServer server;
+    server.server().Get("/user/repos", [](const httplib::Request& request,
+                                            httplib::Response& response) {
+        if (request.get_param_value("page") == "1") {
+            response.set_header("Link", "<http://example.test/user/repos?page=2>; rel=\"next\"");
+            response.set_content(R"([{"full_name":"owner/repo"}])", "application/json");
+            return;
+        }
+        if (request.get_param_value("page") == "2") {
+            response.set_content(R"([{"full_name":"owner/repo"}])", "application/json");
+            return;
+        }
+        response.status = 400;
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    try {
+        (void)client.fetch_accessible_repositories();
+        FAIL() << "expected duplicate repository error";
+    } catch (const ghinfo::GitHubRequestError& error) {
+        EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::semantic);
+    }
+}
+
 TEST(GitHubClientTest, RejectsInvalidUtcTimestampAndMismatchedRepository) {
     LocalHttpServer server;
     server.server().Get("/repos/owner/repo/issues", [](const httplib::Request&,

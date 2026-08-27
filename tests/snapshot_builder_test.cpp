@@ -167,6 +167,27 @@ TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
     EXPECT_EQ(snapshot.rate_limit->reset_at.value(), "1970-01-01T00:00:00Z");
 }
 
+TEST(SnapshotBuilderTest, DiscoversRepositoriesWhenConfiguredForAutomaticSelection) {
+    LocalHttpServer server;
+    server.server().Get("/user/repos", [](const httplib::Request&, httplib::Response& response) {
+        response.set_content(R"([{"full_name":"a/repo"}])", "application/json");
+    });
+    register_repository(server.server(), "a/repo");
+
+    ghinfo::Config config;
+    config.repository_selection = ghinfo::RepositorySelection::discover_all;
+    config.run_history = 20;
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto snapshot = ghinfo::build_snapshot(config, client, 9, "2026-08-26T19:00:00Z");
+
+    ASSERT_EQ(snapshot.repositories.size(), 1U);
+    EXPECT_EQ(snapshot.repositories.front().full_name, "a/repo");
+}
+
 TEST(SnapshotBuilderTest, FormatsCurrentTimeAsUtcIso8601) {
     const auto timestamp = ghinfo::utc_now_iso8601();
 

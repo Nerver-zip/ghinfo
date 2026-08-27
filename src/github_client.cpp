@@ -12,6 +12,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <set>
 #include <string_view>
 #include <utility>
 #include <vector>
@@ -487,6 +488,26 @@ Repository parse_repository_payload(const Json& payload, const RepositoryRef& re
     return repository;
 }
 
+std::vector<RepositoryRef> parse_repository_list_payload(const Json& payload) {
+    if (!payload.is_array()) {
+        throw PayloadShapeError("repository list payload must be an array");
+    }
+
+    std::vector<RepositoryRef> repositories;
+    repositories.reserve(payload.size());
+    for (const auto& entry : payload) {
+        const auto full_name = required_field<std::string>(entry, "full_name");
+        RepositoryRef repository;
+        try {
+            repository = parse_repository_ref(full_name);
+        } catch (const std::exception&) {
+            throw PayloadShapeError("invalid repository full_name");
+        }
+        repositories.push_back(std::move(repository));
+    }
+    return repositories;
+}
+
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
@@ -787,6 +808,42 @@ Repository GitHubClient::fetch_repository(const RepositoryRef& repository) const
                                  "GitHub repository payload has invalid shape: " +
                                      std::string{error.what()});
     }
+}
+
+std::vector<RepositoryRef> GitHubClient::fetch_accessible_repositories() const {
+    constexpr std::size_t page_size = 100;
+    constexpr std::size_t max_pages = 1000;
+    std::vector<RepositoryRef> repositories;
+    std::set<std::string> seen;
+
+    for (std::size_t page = 1; page <= max_pages; ++page) {
+        const auto path = "/user/repos?visibility=all&affiliation=owner,collaborator,organization_member"
+                          "&sort=full_name&direction=asc&per_page=" +
+                          std::to_string(page_size) + "&page=" + std::to_string(page);
+        const auto response = get(path);
+        const auto payload = parse_json(response.body);
+
+        try {
+            auto page_repositories = parse_repository_list_payload(payload);
+            for (auto& repository : page_repositories) {
+                if (!seen.insert(repository.full_name()).second) {
+                    throw PayloadShapeError("duplicate repository full_name");
+                }
+                repositories.push_back(std::move(repository));
+            }
+        } catch (const PayloadShapeError& error) {
+            throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                     "GitHub repository list payload has invalid shape: " +
+                                         std::string{error.what()});
+        }
+
+        if (!has_next_link(response)) {
+            return repositories;
+        }
+    }
+
+    throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                             "GitHub repository pagination exceeded the safety limit");
 }
 
 std::optional<RateLimit> GitHubClient::rate_limit() const {

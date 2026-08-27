@@ -21,6 +21,13 @@ TEST(ConfigTest, RejectsMalformedRepositoryReference) {
     EXPECT_THROW((void)ghinfo::parse_repository_ref("a/b/c"), std::runtime_error);
 }
 
+TEST(ConfigTest, SupportsAutomaticRepositorySelection) {
+    EXPECT_EQ(ghinfo::parse_repository_selection("auto"),
+              ghinfo::RepositorySelection::discover_all);
+    EXPECT_EQ(ghinfo::parse_repository_selection("owner/repo"),
+              ghinfo::RepositorySelection::explicit_list);
+}
+
 TEST(ConfigTest, ParsesLogLevels) {
     EXPECT_EQ(ghinfo::to_string(ghinfo::parse_log_level("debug")), "debug");
     EXPECT_EQ(ghinfo::to_string(ghinfo::parse_log_level("warn")), "warn");
