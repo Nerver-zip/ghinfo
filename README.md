@@ -206,6 +206,7 @@ discover repositories it was not granted access to.
 ├── dev/
 ├── docs/
 ├── include/ghinfo/
+├── Kustom/                  # optional Kustom activity-widget recipe
 ├── scripts/
 ├── src/
 ├── tests/

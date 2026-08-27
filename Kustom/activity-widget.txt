@@ -1,0 +1,19 @@
+ghinfo activity — title Text module
+
+GITHUB ACTIVITY
+$if(tc(json,gv(ghinfo_activity),".activity.items[0].id")="","No activity",tc(json,gv(ghinfo_activity),".activity.items[0].repository"))$
+
+Row 1 — Text module
+$if(tc(json,gv(ghinfo_activity),".activity.items[0].id")="","",if(tc(json,gv(ghinfo_activity),".activity.items[0].kind")="pull_request","",if(tc(json,gv(ghinfo_activity),".activity.items[0].kind")="issue","",if(tc(json,gv(ghinfo_activity),".activity.items[0].kind")="running_job","",""))))$  $tc(json,gv(ghinfo_activity),".activity.items[0].repository")$ · $if(tc(json,gv(ghinfo_activity),".activity.items[0].kind")="pull_request",tc(json,gv(ghinfo_activity),".activity.items[0].title"),if(tc(json,gv(ghinfo_activity),".activity.items[0].kind")="issue",tc(json,gv(ghinfo_activity),".activity.items[0].title"),tc(json,gv(ghinfo_activity),".activity.items[0].name")))$
+
+Row 2 — Text module
+$if(tc(json,gv(ghinfo_activity),".activity.items[1].id")="","",if(tc(json,gv(ghinfo_activity),".activity.items[1].kind")="pull_request","",if(tc(json,gv(ghinfo_activity),".activity.items[1].kind")="issue","",if(tc(json,gv(ghinfo_activity),".activity.items[1].kind")="running_job","",""))))$  $tc(json,gv(ghinfo_activity),".activity.items[1].repository")$ · $if(tc(json,gv(ghinfo_activity),".activity.items[1].kind")="pull_request",tc(json,gv(ghinfo_activity),".activity.items[1].title"),if(tc(json,gv(ghinfo_activity),".activity.items[1].kind")="issue",tc(json,gv(ghinfo_activity),".activity.items[1].title"),tc(json,gv(ghinfo_activity),".activity.items[1].name")))$
+
+Row 3 — Text module
+$if(tc(json,gv(ghinfo_activity),".activity.items[2].id")="","",if(tc(json,gv(ghinfo_activity),".activity.items[2].kind")="pull_request","",if(tc(json,gv(ghinfo_activity),".activity.items[2].kind")="issue","",if(tc(json,gv(ghinfo_activity),".activity.items[2].kind")="running_job","",""))))$  $tc(json,gv(ghinfo_activity),".activity.items[2].repository")$ · $if(tc(json,gv(ghinfo_activity),".activity.items[2].kind")="pull_request",tc(json,gv(ghinfo_activity),".activity.items[2].title"),if(tc(json,gv(ghinfo_activity),".activity.items[2].kind")="issue",tc(json,gv(ghinfo_activity),".activity.items[2].title"),tc(json,gv(ghinfo_activity),".activity.items[2].name")))$
+
+Row 4 — Text module
+$if(tc(json,gv(ghinfo_activity),".activity.items[3].id")="","",if(tc(json,gv(ghinfo_activity),".activity.items[3].kind")="pull_request","",if(tc(json,gv(ghinfo_activity),".activity.items[3].kind")="issue","",if(tc(json,gv(ghinfo_activity),".activity.items[3].kind")="running_job","",""))))$  $tc(json,gv(ghinfo_activity),".activity.items[3].repository")$ · $if(tc(json,gv(ghinfo_activity),".activity.items[3].kind")="pull_request",tc(json,gv(ghinfo_activity),".activity.items[3].title"),if(tc(json,gv(ghinfo_activity),".activity.items[3].kind")="issue",tc(json,gv(ghinfo_activity),".activity.items[3].title"),tc(json,gv(ghinfo_activity),".activity.items[3].name")))$
+
+Row 5 — Text module
+$if(tc(json,gv(ghinfo_activity),".activity.items[4].id")="","",if(tc(json,gv(ghinfo_activity),".activity.items[4].kind")="pull_request","",if(tc(json,gv(ghinfo_activity),".activity.items[4].kind")="issue","",if(tc(json,gv(ghinfo_activity),".activity.items[4].kind")="running_job","",""))))$  $tc(json,gv(ghinfo_activity),".activity.items[4].repository")$ · $if(tc(json,gv(ghinfo_activity),".activity.items[4].kind")="pull_request",tc(json,gv(ghinfo_activity),".activity.items[4].title"),if(tc(json,gv(ghinfo_activity),".activity.items[4].kind")="issue",tc(json,gv(ghinfo_activity),".activity.items[4].title"),tc(json,gv(ghinfo_activity),".activity.items[4].name")))$
