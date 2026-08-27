@@ -22,6 +22,11 @@ ctest --preset dev --output-on-failure
 
 Warnings are treated as errors for project code.
 
+CI configures `ccache` as the C and C++ compiler launcher and restores a
+compiler cache per toolchain/job. The Docker builder uses a BuildKit cache
+mount for the same purpose. These are build accelerators only; they do not
+change runtime behavior or persist application data.
+
 ### Release
 
 ```bash

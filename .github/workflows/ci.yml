@@ -31,16 +31,24 @@ jobs:
       - name: Install toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev clang-format
+          sudo apt-get install -y ccache cmake ninja-build libcurl4-openssl-dev clang-format
           if [[ "${{ matrix.name }}" == "clang" ]]; then
             sudo apt-get install -y clang
           fi
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-${{ matrix.name }}-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-${{ matrix.name }}-
 
       - name: Configure
         env:
           CC: ${{ matrix.cc }}
           CXX: ${{ matrix.cxx }}
-        run: cmake --preset dev
+        run: cmake --preset dev -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build --preset dev --parallel
@@ -54,6 +62,9 @@ jobs:
       - name: Diff check
         run: git diff --check
 
+      - name: Cache statistics
+        run: ccache --show-stats
+
   sanitizer:
     name: asan-ubsan
     runs-on: ubuntu-latest
@@ -64,16 +75,27 @@ jobs:
       - name: Install toolchain
         run: |
           sudo apt-get update
-          sudo apt-get install -y cmake ninja-build libcurl4-openssl-dev
+          sudo apt-get install -y ccache cmake ninja-build libcurl4-openssl-dev
+
+      - name: Restore compiler cache
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/ccache
+          key: ccache-${{ runner.os }}-asan-${{ github.sha }}
+          restore-keys: |
+            ccache-${{ runner.os }}-asan-
 
       - name: Configure
         env:
           CC: gcc
           CXX: g++
-        run: cmake --preset asan
+        run: cmake --preset asan -DCMAKE_C_COMPILER_LAUNCHER=ccache -DCMAKE_CXX_COMPILER_LAUNCHER=ccache
 
       - name: Build
         run: cmake --build --preset asan --parallel
 
       - name: Test
         run: ctest --preset asan --output-on-failure
+
+      - name: Cache statistics
+        run: ccache --show-stats

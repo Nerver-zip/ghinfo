@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.7
+
 FROM debian:bookworm-slim AS builder
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -5,6 +7,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     ca-certificates \
+    ccache \
     cmake \
     curl \
     git \
@@ -15,7 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 WORKDIR /src
 COPY . .
 
-RUN cmake --preset release \
+RUN --mount=type=cache,id=ghinfo-ccache,target=/root/.cache/ccache \
+    cmake --preset release \
+        -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+        -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
     && cmake --build --preset release --parallel
 
 FROM debian:bookworm-slim AS runtime

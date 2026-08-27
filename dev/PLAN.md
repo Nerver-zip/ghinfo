@@ -54,3 +54,7 @@ extension to `/v1/activity`:
 
 The implementation should remain in-memory and should not add SQLite, a broker,
 notifications, or per-consumer acknowledgement state.
+
+Build acceleration is separate from application persistence: CI and the
+container builder may use ccache/BuildKit caches, but runtime images and
+snapshots remain unchanged.
