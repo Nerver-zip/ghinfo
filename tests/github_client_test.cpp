@@ -277,6 +277,52 @@ TEST(GitHubClientTest, ReportsMalformedIssuePayload) {
     }
 }
 
+TEST(GitHubClientTest, RejectsItemsMissingTitlesOrNames) {
+    LocalHttpServer server;
+    server.server().Get("/repos/owner/repo/issues",
+                        [](const httplib::Request&, httplib::Response& response) {
+                            response.set_content(R"([{"id":1,"number":1}])", "application/json");
+                        });
+    server.server().Get("/repos/owner/repo/pulls",
+                        [](const httplib::Request&, httplib::Response& response) {
+                            response.set_content(R"([{"id":2,"number":2}])", "application/json");
+                        });
+    server.server().Get(
+        "/repos/owner/repo/actions/runs", [](const httplib::Request&, httplib::Response& response) {
+            response.set_content(R"({"workflow_runs":[{"id":3,"status":"completed"}]})",
+                                 "application/json");
+        });
+    server.server().Get("/repos/owner/repo/actions/runs/3/jobs", [](const httplib::Request&,
+                                                                    httplib::Response& response) {
+        response.set_content(R"({"jobs":[{"id":4,"run_id":3}]})", "application/json");
+    });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+    const auto repository = ghinfo::parse_repository_ref("owner/repo");
+    const auto expect_semantic_error = [](const auto& fetch) {
+        try {
+            fetch();
+            FAIL() << "expected semantic payload error";
+        } catch (const ghinfo::GitHubRequestError& error) {
+            EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::semantic);
+        }
+    };
+
+    expect_semantic_error([&] { static_cast<void>(client.fetch_open_issues(repository)); });
+    expect_semantic_error([&] { static_cast<void>(client.fetch_open_pull_requests(repository)); });
+    expect_semantic_error([&] { static_cast<void>(client.fetch_workflow_runs(repository, 20)); });
+
+    ghinfo::WorkflowRun run;
+    run.id = 3;
+    run.status = ghinfo::RunStatus::completed;
+    run.conclusion = ghinfo::Conclusion::failure;
+    expect_semantic_error(
+        [&] { static_cast<void>(client.fetch_relevant_workflow_jobs(repository, run)); });
+}
+
 TEST(GitHubClientTest, FetchesAllAccessibleRepositoriesAcrossPages) {
     LocalHttpServer server;
     std::atomic<int> request_count{0};

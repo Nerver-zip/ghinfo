@@ -1,5 +1,7 @@
 #include "ghinfo/server.hpp"
 
+#include "ghinfo/activity.hpp"
+
 #include <httplib.h>
 
 #include <gtest/gtest.h>
@@ -73,6 +75,7 @@ std::shared_ptr<ghinfo::Snapshot> sample_snapshot() {
                             "https://github.com/owner/repo/actions/runs/3001/job/4001"},
     };
     snapshot->rate_limit = ghinfo::RateLimit{5000, 4999, "2026-08-26T21:00:00Z"};
+    snapshot->activity_items = ghinfo::build_activity_items(*snapshot);
     return snapshot;
 }
 
@@ -215,6 +218,7 @@ TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
     snapshot->jobs.push_back(ghinfo::WorkflowJob{
         4002, 3002, "other/repo", "pending-check", ghinfo::RunStatus::in_progress, std::nullopt,
         std::nullopt, std::nullopt, "https://github.com/other/repo/job/4002"});
+    snapshot->activity_items = ghinfo::build_activity_items(*snapshot);
     store.publish(std::move(snapshot));
     store.record_poll_success("2026-08-26T20:45:31Z");
 
@@ -227,8 +231,39 @@ TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
     EXPECT_EQ(body.at("activity").at("failedRuns").at(0).at("conclusion"), "failure");
     EXPECT_EQ(body.at("activity").at("pullRequests").size(), 1U);
     EXPECT_EQ(body.at("activity").at("issues").size(), 2U);
+    ASSERT_EQ(body.at("activity").at("items").size(), 6U);
+    EXPECT_EQ(body.at("activity").at("items").at(0).at("kind"), "failed_run");
+    EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "failed_job");
+    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "pull_request");
+    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "running_job");
+    EXPECT_EQ(body.at("activity").at("items").at(3).at("name"), "pending-check");
     EXPECT_FALSE(body.at("activity").contains("priority"));
     EXPECT_FALSE(body.at("activity").contains("score"));
+}
+
+TEST(ApiTest, PrioritizedActivityMatchesGoldenAndRepeatedReads) {
+    ghinfo::SnapshotStore store;
+    store.publish(sample_snapshot());
+    store.record_poll_success("2026-08-26T20:45:31Z");
+
+    const auto response = ghinfo::make_activity_response(store);
+    ASSERT_EQ(response.status, 200);
+    const auto actual = nlohmann::json::parse(response.body);
+    const auto expected = nlohmann::json::parse(read_fixture("tests/golden/activity.json"));
+    EXPECT_EQ(actual.at("activity").at("items"), expected);
+
+    const auto first = ghinfo::make_activity_response(store, 2);
+    const auto second = ghinfo::make_activity_response(store, 2);
+    EXPECT_EQ(first.body, second.body);
+    const auto limited = nlohmann::json::parse(first.body);
+    ASSERT_EQ(limited.at("activity").at("items").size(), 2U);
+    EXPECT_EQ(limited.at("activity").at("items").at(0).at("kind"), "failed_run");
+    EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "failed_job");
+
+    store.record_poll_failure("2026-08-26T20:46:31Z", "transport", "2026-08-26T20:47:31Z");
+    const auto stale = nlohmann::json::parse(ghinfo::make_activity_response(store, 2).body);
+    EXPECT_EQ(stale.at("activity").at("items"), limited.at("activity").at("items"));
+    EXPECT_TRUE(stale.at("stale").get<bool>());
 }
 
 TEST(ApiTest, MetaIncludesSafePollAndRateLimitState) {
@@ -328,6 +363,19 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     ASSERT_TRUE(activity != nullptr);
     EXPECT_EQ(activity->status, 200);
     EXPECT_EQ(nlohmann::json::parse(activity->body).at("activity").at("failedRuns").size(), 1U);
+    EXPECT_EQ(nlohmann::json::parse(activity->body).at("activity").at("items").size(), 5U);
+
+    const auto limited_activity = client.Get("/v1/activity?limit=2");
+    ASSERT_TRUE(limited_activity != nullptr);
+    EXPECT_EQ(limited_activity->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(limited_activity->body).at("activity").at("items").size(), 2U);
+
+    for (const auto* value : {"0", "101", "invalid", ""}) {
+        const auto invalid_limit = client.Get(std::string{"/v1/activity?limit="} + value);
+        ASSERT_TRUE(invalid_limit != nullptr);
+        EXPECT_EQ(invalid_limit->status, 400);
+        EXPECT_EQ(nlohmann::json::parse(invalid_limit->body).at("error"), "invalid_limit");
+    }
 
     const auto invalid = client.Get("/v1/runs?status=invalid");
     ASSERT_TRUE(invalid != nullptr);

@@ -33,6 +33,20 @@ enum class Conclusion {
     unknown,
 };
 
+enum class ActivityKind {
+    failed_job,
+    failed_run,
+    running_job,
+    pull_request,
+    issue,
+};
+
+enum class ActivityPriority {
+    critical,
+    high,
+    normal,
+};
+
 struct Repository {
     GithubId id{};
     std::string full_name;
@@ -94,7 +108,25 @@ struct WorkflowJob {
     std::string url;
 };
 
+struct ActivityItem {
+    ActivityKind kind{ActivityKind::issue};
+    ActivityPriority priority{ActivityPriority::normal};
+    std::vector<std::string> signals;
+    std::string repository;
+    GithubId id{};
+    std::optional<std::uint64_t> number;
+    std::optional<GithubId> run_id;
+    std::optional<std::string> title;
+    std::optional<std::string> name;
+    std::optional<RunStatus> status;
+    std::optional<Conclusion> conclusion;
+    std::optional<std::string> updated_at;
+    std::string url;
+};
+
 [[nodiscard]] std::string to_string(RunStatus status);
 [[nodiscard]] std::string to_string(Conclusion conclusion);
+[[nodiscard]] std::string to_string(ActivityKind kind);
+[[nodiscard]] std::string to_string(ActivityPriority priority);
 
 } // namespace ghinfo

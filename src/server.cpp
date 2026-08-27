@@ -6,6 +6,7 @@
 
 #include <algorithm>
 #include <array>
+#include <charconv>
 #include <exception>
 #include <limits>
 #include <memory>
@@ -87,6 +88,35 @@ constexpr int schema_version = 1;
                 {"startedAt", nullable_string(job.started_at)},
                 {"completedAt", nullable_string(job.completed_at)},
                 {"url", job.url}};
+}
+
+[[nodiscard]] Json activity_item_json(const ActivityItem& item) {
+    Json value{{"kind", to_string(item.kind)},
+               {"priority", to_string(item.priority)},
+               {"signals", item.signals},
+               {"repository", item.repository},
+               {"id", item.id},
+               {"updatedAt", nullable_string(item.updated_at)},
+               {"url", item.url}};
+    if (item.number.has_value()) {
+        value["number"] = *item.number;
+    }
+    if (item.run_id.has_value()) {
+        value["runId"] = *item.run_id;
+    }
+    if (item.title.has_value()) {
+        value["title"] = *item.title;
+    }
+    if (item.name.has_value()) {
+        value["name"] = *item.name;
+    }
+    if (item.status.has_value()) {
+        value["status"] = to_string(*item.status);
+    }
+    if (item.conclusion.has_value()) {
+        value["conclusion"] = to_string(*item.conclusion);
+    }
+    return value;
 }
 
 [[nodiscard]] Json rate_limit_json(const RateLimit& rate_limit) {
@@ -189,6 +219,24 @@ void write_response(const JsonResponse& payload, httplib::Response& response) {
         error = error_response("invalid_repository_filter", 400);
         return std::nullopt;
     }
+}
+
+[[nodiscard]] std::optional<std::size_t> activity_limit(const httplib::Request& request,
+                                                        JsonResponse& error) {
+    if (!request.has_param("limit")) {
+        return kDefaultActivityLimit;
+    }
+
+    const auto value = request.get_param_value("limit");
+    std::size_t parsed{};
+    const auto [end, parse_error] =
+        std::from_chars(value.data(), value.data() + value.size(), parsed);
+    if (parse_error != std::errc{} || end != value.data() + value.size() || parsed == 0 ||
+        parsed > kMaxActivityLimit) {
+        error = error_response("invalid_limit", 400);
+        return std::nullopt;
+    }
+    return parsed;
 }
 
 } // namespace
@@ -418,7 +466,7 @@ JsonResponse make_workflow_jobs_response(const Snapshot& snapshot,
     return json_response(body);
 }
 
-JsonResponse make_activity_response(const SnapshotStore& store) {
+JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limit) {
     const auto snapshot = store.get();
     if (snapshot == nullptr) {
         return make_snapshot_unavailable_response();
@@ -428,6 +476,7 @@ JsonResponse make_activity_response(const SnapshotStore& store) {
     Json failed_runs = Json::array();
     Json pull_requests = Json::array();
     Json issues = Json::array();
+    Json items = Json::array();
     for (const auto& job : snapshot->jobs) {
         if (job.status == RunStatus::queued || job.status == RunStatus::in_progress) {
             running_jobs.push_back(workflow_job_json(job));
@@ -444,12 +493,17 @@ JsonResponse make_activity_response(const SnapshotStore& store) {
     for (const auto& issue : snapshot->issues) {
         issues.push_back(issue_json(issue));
     }
+    const auto item_count = std::min(limit, snapshot->activity_items.size());
+    for (std::size_t index = 0; index < item_count; ++index) {
+        items.push_back(activity_item_json(snapshot->activity_items[index]));
+    }
 
     auto body = base_json(store, *snapshot);
     body["activity"] = Json{{"runningJobs", std::move(running_jobs)},
                             {"failedRuns", std::move(failed_runs)},
                             {"pullRequests", std::move(pull_requests)},
-                            {"issues", std::move(issues)}};
+                            {"issues", std::move(issues)},
+                            {"items", std::move(items)}};
     return json_response(body);
 }
 
@@ -566,9 +620,16 @@ void ApiServer::register_routes() {
                        response);
     });
 
-    server_.Get("/v1/activity", [this](const httplib::Request&, httplib::Response& response) {
-        write_response(make_activity_response(store_), response);
-    });
+    server_.Get("/v1/activity",
+                [this](const httplib::Request& request, httplib::Response& response) {
+                    JsonResponse error;
+                    const auto limit = activity_limit(request, error);
+                    if (!limit.has_value()) {
+                        write_response(error, response);
+                        return;
+                    }
+                    write_response(make_activity_response(store_, *limit), response);
+                });
 }
 
 bool ApiServer::listen() {

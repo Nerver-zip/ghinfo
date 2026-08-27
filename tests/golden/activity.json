@@ -1,0 +1,60 @@
+[
+  {
+    "kind": "failed_run",
+    "priority": "critical",
+    "signals": ["failed_run"],
+    "repository": "owner/repo",
+    "id": 3001,
+    "updatedAt": "2026-08-26T12:03:00Z",
+    "url": "https://github.com/owner/repo/actions/runs/3001",
+    "name": "CI",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  {
+    "kind": "failed_job",
+    "priority": "critical",
+    "signals": ["failed_job"],
+    "repository": "owner/repo",
+    "id": 4001,
+    "updatedAt": "2026-08-26T12:02:55Z",
+    "url": "https://github.com/owner/repo/actions/runs/3001/job/4001",
+    "runId": 3001,
+    "name": "gcc-debug",
+    "status": "completed",
+    "conclusion": "failure"
+  },
+  {
+    "kind": "pull_request",
+    "priority": "high",
+    "signals": ["open_pull_request"],
+    "repository": "owner/repo",
+    "id": 2001,
+    "updatedAt": "2026-08-26T13:00:00Z",
+    "url": "https://github.com/owner/repo/pull/17",
+    "number": 17,
+    "title": "Example pull request"
+  },
+  {
+    "kind": "issue",
+    "priority": "normal",
+    "signals": ["open_issue"],
+    "repository": "owner/repo",
+    "id": 1003,
+    "updatedAt": "2026-08-26T13:00:00Z",
+    "url": "https://github.com/owner/repo/issues/42",
+    "number": 42,
+    "title": "Example issue"
+  },
+  {
+    "kind": "issue",
+    "priority": "normal",
+    "signals": ["open_issue"],
+    "repository": "other/repo",
+    "id": 1004,
+    "updatedAt": "2026-08-26T12:00:00Z",
+    "url": "https://github.com/other/repo/issues/7",
+    "number": 7,
+    "title": "Other issue"
+  }
+]

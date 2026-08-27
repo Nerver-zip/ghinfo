@@ -38,4 +38,32 @@ std::string to_string(Conclusion conclusion) {
     return "unknown";
 }
 
+std::string to_string(ActivityKind kind) {
+    switch (kind) {
+    case ActivityKind::failed_job:
+        return "failed_job";
+    case ActivityKind::failed_run:
+        return "failed_run";
+    case ActivityKind::running_job:
+        return "running_job";
+    case ActivityKind::pull_request:
+        return "pull_request";
+    case ActivityKind::issue:
+        return "issue";
+    }
+    return "issue";
+}
+
+std::string to_string(ActivityPriority priority) {
+    switch (priority) {
+    case ActivityPriority::critical:
+        return "critical";
+    case ActivityPriority::high:
+        return "high";
+    case ActivityPriority::normal:
+        return "normal";
+    }
+    return "normal";
+}
+
 } // namespace ghinfo

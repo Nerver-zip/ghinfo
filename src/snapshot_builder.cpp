@@ -1,5 +1,7 @@
 #include "ghinfo/snapshot_builder.hpp"
 
+#include "ghinfo/activity.hpp"
+
 #include <algorithm>
 #include <chrono>
 #include <ctime>
@@ -65,6 +67,7 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
               [](const WorkflowJob& left, const WorkflowJob& right) {
                   return std::tie(left.repository, left.id) < std::tie(right.repository, right.id);
               });
+    snapshot.activity_items = build_activity_items(snapshot);
     snapshot.rate_limit = github.rate_limit();
     return snapshot;
 }

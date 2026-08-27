@@ -41,6 +41,7 @@ add_library(ghinfo_lib
     src/config.cpp
     src/model.cpp
     src/github_client.cpp
+    src/activity.cpp
     src/poller.cpp
     src/server.cpp
     src/snapshot_builder.cpp
@@ -85,6 +86,7 @@ if(GHINFO_BUILD_TESTS)
     FetchContent_MakeAvailable(googletest)
 
     add_executable(ghinfo_tests
+        tests/activity_test.cpp
         tests/config_test.cpp
         tests/snapshot_test.cpp
         tests/api_test.cpp

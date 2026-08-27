@@ -20,6 +20,7 @@ struct Snapshot {
     std::vector<PullRequest> pull_requests;
     std::vector<WorkflowRun> workflow_runs;
     std::vector<WorkflowJob> jobs;
+    std::vector<ActivityItem> activity_items;
     std::optional<RateLimit> rate_limit;
 };
 
