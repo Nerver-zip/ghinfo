@@ -817,9 +817,10 @@ std::vector<RepositoryRef> GitHubClient::fetch_accessible_repositories() const {
     std::set<std::string> seen;
 
     for (std::size_t page = 1; page <= max_pages; ++page) {
-        const auto path = "/user/repos?visibility=all&affiliation=owner,collaborator,organization_member"
-                          "&sort=full_name&direction=asc&per_page=" +
-                          std::to_string(page_size) + "&page=" + std::to_string(page);
+        const auto path =
+            "/user/repos?visibility=all&affiliation=owner,collaborator,organization_member"
+            "&sort=full_name&direction=asc&per_page=" +
+            std::to_string(page_size) + "&page=" + std::to_string(page);
         const auto response = get(path);
         const auto payload = parse_json(response.body);
 

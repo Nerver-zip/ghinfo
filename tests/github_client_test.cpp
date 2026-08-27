@@ -281,7 +281,7 @@ TEST(GitHubClientTest, FetchesAllAccessibleRepositoriesAcrossPages) {
     LocalHttpServer server;
     std::atomic<int> request_count{0};
     server.server().Get("/user/repos", [&](const httplib::Request& request,
-                                            httplib::Response& response) {
+                                           httplib::Response& response) {
         ++request_count;
         if (request.get_param_value("visibility") != "all" ||
             request.get_param_value("affiliation") != "owner,collaborator,organization_member" ||
@@ -340,7 +340,7 @@ TEST(GitHubClientTest, RejectsMalformedAccessibleRepositoryPayload) {
 TEST(GitHubClientTest, RejectsDuplicateAccessibleRepositories) {
     LocalHttpServer server;
     server.server().Get("/user/repos", [](const httplib::Request& request,
-                                            httplib::Response& response) {
+                                          httplib::Response& response) {
         if (request.get_param_value("page") == "1") {
             response.set_header("Link", "<http://example.test/user/repos?page=2>; rel=\"next\"");
             response.set_content(R"([{"full_name":"owner/repo"}])", "application/json");

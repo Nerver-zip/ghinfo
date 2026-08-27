@@ -159,8 +159,7 @@ Config load_config_from_environment() {
 }
 
 RepositorySelection parse_repository_selection(const std::string& value) {
-    return value == "auto" ? RepositorySelection::discover_all
-                            : RepositorySelection::explicit_list;
+    return value == "auto" ? RepositorySelection::discover_all : RepositorySelection::explicit_list;
 }
 
 } // namespace ghinfo
