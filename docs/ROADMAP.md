@@ -249,23 +249,37 @@ Acceptance:
 Status: delivered locally with deterministic positive, malformed, duplicate,
 pagination, and snapshot-integration tests.
 
+## Post-MVP delivered locally
+
+### Prioritized activity projection
+
+Delivered as an additive extension to `/v1/activity`:
+
+- bounded `?limit=N` reads with default `20` and maximum `100`;
+- explainable priority bands and stable signals;
+- distinct failed-job and failed-run items;
+- issue/PR titles and run/job names;
+- deterministic priority, recency, repository, kind, and ID ordering;
+- compatibility-preserving grouped activity fields;
+- non-consuming reads without acknowledgements or per-consumer state.
+
+`firstSeenAt`, event history, and persistence remain deferred. The decision is
+recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md).
+
 ## Post-MVP candidates
 
 Only after usage demonstrates need:
 
-### v0.2
+### v0.2+
 
-- prioritized activity projection with bounded `?limit=N` reads, explainable
-  priority bands, failed-job items, and deterministic ordering;
-- richer filtering;
+- richer activity filtering;
 - optional self-API bearer token;
 - per-resource polling cadence.
 
-The prioritized activity projection must be preceded by an ADR. It remains a
-read-only snapshot view: no acknowledgements, per-consumer queues,
-notifications, or opaque numeric score are introduced. “New since the previous
-poll” requires an explicit state/persistence decision and is not part of the
-initial projection.
+Further activity changes must preserve the ADR-backed read-only snapshot view:
+no acknowledgements, per-consumer queues, notifications, or opaque numeric
+score are introduced. “New since the previous poll” requires an explicit
+state/persistence decision and is not part of the initial projection.
 
 ### v0.3
 

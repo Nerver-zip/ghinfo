@@ -2,39 +2,37 @@
 
 ## Objective
 
-Add repository-history secret scanning with Gitleaks and keep the handoff as a
-record of implementation and evidence rather than an operator checklist.
+Deliver the prioritized activity projection as an additive, in-memory,
+consumer-agnostic extension to `/v1/activity`.
 
-## Files changed
+## Delivered
 
-- `.github/workflows/ci.yml`
-- `docs/SECURITY.md`
-- `dev/COMMIT.md`
-
-## Acceptance criteria
-
-- A dedicated Gitleaks job runs on push, pull request, and manual CI runs.
-- The scan checks complete Git history through a full repository checkout.
-- The scan job has read-only repository permissions and does not publish
-  comments or artifacts.
-- The application PAT is not exposed to the scan job.
-- No runtime behavior, public API, or Docker image content changes.
+- ADR-0001 defines the contract, priority bands, signals, ordering,
+  compatibility, and deferred historical state.
+- Immutable snapshots contain ordered activity items for failed jobs, failed
+  runs, running jobs, pull requests, and issues.
+- `limit` defaults to 20, accepts 1 through 100, and rejects invalid values
+  with `invalid_limit`.
+- Existing grouped activity fields remain available.
+- Titles, names, stable IDs, effective timestamps, priorities, and signals are
+  exposed without consumer-specific presentation logic.
 
 ## Validation
 
-- `actionlint .github/workflows/*.yml` — passed.
-- `./scripts/validate.sh` — passed; 45/45 tests passed.
-- `gitleaks git --redact --no-banner` — passed; 31 commits scanned and no
-  leaks found.
+- `./scripts/validate.sh` — passed; 50/50 tests passed.
+- ASan/UBSan build and tests with leak detection disabled for the sandbox's
+  ptrace-compatible execution — passed; 50/50 tests passed.
+- `./scripts/check-format.sh` — passed.
 - `git diff --check` — passed.
-- Docker build — not executed in this environment because the Docker daemon
-  socket is unavailable.
+- `gitleaks git --redact --no-banner` — passed; no leaks found.
 
 ## Compatibility and security
 
-No public HTTP schema changed. Gitleaks is CI-only and uses the workflow's
-read-only `GITHUB_TOKEN`; the application PAT remains outside the scan job.
+The change is additive to the v1 activity schema. Handlers read immutable
+snapshot data and never call GitHub. No persistence, acknowledgement state,
+consumer credentials, or secret-bearing fields were added.
 
 ## External state
 
-Remote CI execution and remote tag publication are outside this local change.
+Remote CI/release state and Docker image verification remain external. The
+local checkout preserves the unrelated `.ai-jail` worktree change.

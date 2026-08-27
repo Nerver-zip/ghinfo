@@ -25,8 +25,10 @@ A tiny, headless, self-hosted GitHub status service.
 - No notifications, analytics history, SSE, or WebSockets.
 - No Prometheus dependency.
 
-Prioritized activity is a post-MVP design target. It will remain a read-only
-snapshot projection rather than a notification queue.
+Prioritized activity is implemented as a read-only snapshot projection rather
+than a notification queue. Consumers can request a bounded ordered view with
+`GET /v1/activity?limit=N`; the existing grouped activity fields remain
+available for compatibility.
 
 ## Planned architecture
 
@@ -76,8 +78,9 @@ The implementation covers authenticated transport, conditional requests,
 normalized GitHub resources, automatic or explicit repository selection,
 complete snapshots, a resilient background poller, the full v1 read API,
 activity aggregation, runtime hardening, and CI/release automation through
-**MVP-017**. The remaining release action is to
-run the Docker build on a host with an active daemon, then tag/push `v0.1.0`.
+**MVP-017**, plus the prioritized activity projection defined for v0.2. The
+local history includes the validated implementation and the `v0.1.0` release
+tag; remote branch synchronization is an external repository operation.
 See [`dev/PLAN.md`](dev/PLAN.md) and
 [`docs/ROADMAP.md`](docs/ROADMAP.md).
 

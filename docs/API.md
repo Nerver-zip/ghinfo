@@ -200,24 +200,39 @@ This endpoint must not invent priority, confidence, score, or display
 decisions in the current v1 contract. It returns `503 snapshot_unavailable`
 before the first complete poll.
 
-### Planned additive extension: prioritized activity
+### Prioritized activity projection
 
-The next planned activity projection keeps the existing grouped arrays and
-adds an ordered `items` array. Consumers may request a bounded number of items
-with `GET /v1/activity?limit=N`.
+The activity response includes an additive ordered `items` array. Consumers
+may request a bounded number of items with `GET /v1/activity?limit=N`.
 
-Proposed rules:
+The omitted `limit` defaults to `20`; valid values are `1` through `100`.
+Empty, non-numeric, zero, negative, overflowing, and over-limit values return
+`400` with `invalid_limit`. The existing grouped arrays remain unchanged.
 
-- omitted `limit` defaults to `20`;
-- valid `limit` values are `1` through `100`;
-- invalid values return `400` with `invalid_limit`;
-- ordering is calculated from the immutable snapshot, never by a GitHub call;
-- ties are resolved deterministically by recency, repository, kind, and stable
-  resource ID;
-- `priority` is an explicit stable string, not an opaque numeric score;
-- items include a human-readable `title` for issues/PRs and `name` for runs/jobs;
-- failed workflow runs and failed jobs are represented distinctly;
-- no item is acknowledged, removed, or reserved when read.
+Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
+`updatedAt`, and `url`. The item kinds are:
+
+- `failed_job`: failed workflow job, `critical` priority, with `runId`, `name`,
+  `status`, and `conclusion`;
+- `failed_run`: failed workflow run, `critical` priority, with `name`, `status`,
+  and `conclusion`;
+- `running_job`: queued or in-progress job, `high` priority, with `runId`,
+  `name`, and `status`;
+- `pull_request`: open pull request, `high` priority, with `number` and
+  `title`;
+- `issue`: open issue, `normal` priority, with `number` and `title`.
+
+Items are ordered by priority band, effective timestamp descending,
+repository ascending, kind ascending, and stable numeric ID ascending.
+Effective timestamps use `updatedAt` for issues, pull requests, and runs, and
+`completedAt` followed by `startedAt` for jobs. Items without a job timestamp
+sort after timestamped items in their priority band. `priority` and `signals`
+are explicit strings; no opaque numeric score is exposed.
+
+The projection is calculated during complete snapshot construction. Reads only
+slice immutable snapshot data and never acknowledge, remove, reserve, or
+maintain per-consumer state. `firstSeenAt`, event history, and persistence are
+deferred.
 
 Illustrative future shape:
 

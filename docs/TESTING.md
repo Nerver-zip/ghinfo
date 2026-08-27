@@ -75,7 +75,7 @@ Cover:
 - filters plus `400`/`404`/`503` status behavior;
 - content type and normalized JSON contracts over a local HTTP server.
 
-### Planned prioritized activity tests
+### Prioritized activity tests
 
 Before implementation, add deterministic coverage for:
 
@@ -86,6 +86,9 @@ Before implementation, add deterministic coverage for:
 - recency and stable tie-break ordering;
 - repeated reads returning the same items without acknowledgement or mutation;
 - stale snapshots remaining readable with the same ordering rules.
+
+The current suite covers these cases with unit, HTTP, snapshot-integration,
+and golden-contract tests.
 
 ### Golden API tests
 

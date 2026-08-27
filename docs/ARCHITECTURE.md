@@ -106,19 +106,24 @@ Serves JSON from `SnapshotStore`.
 
 Handlers must not know the PAT and must never invoke `GitHubClient`.
 
-### Planned activity projection
+### Prioritized activity projection
 
-The current `/v1/activity` response exposes objective resource groups without
-priority. A planned post-MVP projection will derive a bounded, ordered list of
-attention items while the complete snapshot is being built. HTTP handlers will
-only slice the immutable list for `?limit=N`; reads will not consume items and
-will not maintain per-consumer state.
+The current `/v1/activity` response exposes objective resource groups and a
+prioritized, bounded list of attention items derived while the complete
+snapshot is being built. HTTP handlers only slice the immutable list for
+`?limit=N`; reads do not consume items and do not maintain per-consumer state.
 
-The projection will use domain fields already normalized by ghinfo: `title` for
+The projection uses domain fields already normalized by ghinfo: `title` for
 issues and pull requests, `name` for workflow runs and jobs, stable IDs, and
-UTC timestamps. It will expose explainable priority bands and signals instead
-of a consumer-facing opaque score. “New since last observation” is deferred
-until first-seen state has an explicit lifetime/persistence policy.
+UTC timestamps. It exposes `critical`, `high`, and `normal` priority bands,
+stable signals, and deterministic recency/repository/kind/ID ordering instead
+of a consumer-facing opaque score. Failed runs and failed jobs are distinct
+items. “New since last observation” is deferred until first-seen state has an
+explicit lifetime/persistence policy.
+
+The projection is built once for each complete candidate snapshot and stored in
+`Snapshot::activity_items`. An HTTP request validates `limit` and copies only
+the requested prefix; it never invokes GitHub or mutates the snapshot.
 
 ## Domain model
 

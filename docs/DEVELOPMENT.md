@@ -56,6 +56,15 @@ Format check:
 ./scripts/check-format.sh
 ```
 
+## Prioritized activity
+
+The `/v1/activity` projection is derived during complete snapshot construction.
+Its contract and ordering decisions are recorded in
+[`docs/adr/0001-prioritized-activity-projection.md`](adr/0001-prioritized-activity-projection.md),
+and the public response is documented in [`docs/API.md`](API.md). Changes to
+priority bands, item kinds, ordering, or historical state require an ADR and
+corresponding contract tests.
+
 ## Dependency policy
 
 Dependencies must have a clear reason.

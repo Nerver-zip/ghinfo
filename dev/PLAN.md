@@ -2,9 +2,11 @@
 
 ## Current state
 
-The implementation milestones through MVP-017 are complete in the local
-checkout. Final goal closure is waiting only for external verification that
-cannot be performed in this environment.
+The implementation milestones through MVP-017 and the prioritized activity
+projection are complete in the local checkout. The projection is additive,
+in-memory, read-only, and covered by the current API, snapshot, parser, and
+sanitizer tests. The `v0.1.0` tag has been published remotely; the rewritten
+main branch still requires external synchronization.
 
 ## Final audit criteria
 
@@ -18,39 +20,21 @@ cannot be performed in this environment.
   the normalized domain contract.
 - Automatic repository discovery is paginated, validated, and integrated into
   complete snapshot construction.
-- No tag or remote release is created without those external gates.
+- Future tags or remote releases require those external gates.
 
-## Current external blockers
+## External verification
 
-- No Git remote is configured in this checkout, and `gh` is unauthenticated.
-- Docker CLI exists, but no daemon socket is available; `dockerd` requires
-  unavailable root privileges.
+The Docker image and remote workflow/release state remain external evidence.
+The local environment has no active Docker daemon, so the current activity
+implementation was validated through dev and ASan/UBSan builds, 50 deterministic
+tests, format checks, and Gitleaks.
 
-## Required next evidence
+## Completed post-MVP milestone
 
-```bash
-docker build --tag ghinfo:local .
-git remote -v
-gh run list --limit 20
-git tag -a v0.1.0 -m "ghinfo v0.1.0"
-git push origin main v0.1.0
-```
-
-The tag/push commands are intentionally not executed by this local run.
-
-## Next planned milestone after MVP
-
-Design and implement a prioritized activity projection as an additive
-extension to `/v1/activity`:
-
-- approve an ADR for priority bands and explainable signals;
-- add `?limit=N` with a safe default and maximum;
-- derive ordered items during snapshot construction;
-- preserve the existing grouped activity fields;
-- include issue/PR titles and run/job names;
-- represent failed jobs separately from failed workflow runs;
-- keep reads non-consuming and consumer-agnostic;
-- defer `firstSeenAt` semantics until state lifetime/persistence is decided.
+The prioritized activity projection is implemented and documented. Its ADR,
+API extension, immutable snapshot derivation, explicit ordering, compatibility
+fields, parser validation, golden contract, HTTP coverage, stale-read behavior,
+and deterministic unit tests are present in the local checkout.
 
 The implementation should remain in-memory and should not add SQLite, a broker,
 notifications, or per-consumer acknowledgement state.
