@@ -174,7 +174,7 @@ poll. They never trigger GitHub requests.
 
 Consumer-neutral "things currently worth inspecting", built only from objective state:
 
-- running jobs;
+- running workflow runs and jobs;
 - failed runs;
 - open pull requests;
 - recent/open issues.
@@ -188,6 +188,7 @@ Response shape:
   "generatedAt": "2026-08-26T20:45:31Z",
   "stale": false,
   "activity": {
+    "runningRuns": [],
     "runningJobs": [],
     "failedRuns": [],
     "pullRequests": [],
@@ -196,9 +197,11 @@ Response shape:
 }
 ```
 
-This endpoint must not invent priority, confidence, score, or display
-decisions in the current v1 contract. It returns `503 snapshot_unavailable`
-before the first complete poll.
+The grouped arrays are preserved for compatibility. `runningRuns` is an
+additive group for queued or in-progress workflow runs; the existing
+`runningJobs`, `failedRuns`, `pullRequests`, and `issues` groups retain their
+previous meanings. It returns `503 snapshot_unavailable` before the first
+complete poll.
 
 ### Prioritized activity projection
 
@@ -218,21 +221,59 @@ Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
   and `conclusion`;
 - `running_job`: queued or in-progress job, `high` priority, with `runId`,
   `name`, and `status`;
+- `running_run`: queued or in-progress workflow run, `high` priority, with
+  `name` and `status`;
 - `pull_request`: open pull request, `high` priority, with `number` and
   `title`;
 - `issue`: open issue, `normal` priority, with `number` and `title`.
 
-Items are ordered by priority band, effective timestamp descending,
-repository ascending, kind ascending, and stable numeric ID ascending.
-Effective timestamps use `updatedAt` for issues, pull requests, and runs, and
-`completedAt` followed by `startedAt` for jobs. Items without a job timestamp
-sort after timestamped items in their priority band. `priority` and `signals`
-are explicit strings; no opaque numeric score is exposed.
+Failed workflow runs and jobs use a temporal policy relative to the snapshot's
+`generatedAt`. A failure updated within the previous 7 days remains
+`critical` and receives the `recent_failure` signal. A failure older than 7
+and at most 30 days becomes `normal` and receives `stale_failure`. A failure
+older than 30 days is omitted from `activity.items`. A future-dated upstream
+timestamp is treated as current. If a failure timestamp cannot be evaluated,
+the failure is retained at its base urgency without an age signal; normalized
+GitHub payloads are expected to contain valid UTC timestamps.
 
-The projection is calculated during complete snapshot construction. Reads only
-slice immutable snapshot data and never acknowledge, remove, reserve, or
-maintain per-consumer state. `firstSeenAt`, event history, and persistence are
-deferred.
+Running jobs and workflow runs remain relevant regardless of age. Open pull
+requests and issues remain available with their current `high` and `normal`
+priorities.
+
+The complete eligible item set is ordered by priority band, effective
+timestamp descending, repository ascending, kind ascending, and stable
+numeric ID ascending. Effective timestamps use `updatedAt` for issues, pull
+requests, runs, and running jobs; a job uses `completedAt` followed by
+`startedAt`. Items without a job timestamp sort after timestamped items in
+their priority band. `priority` and `signals` are explicit strings; no opaque
+numeric score is exposed.
+
+The `limit` view applies deterministic diversity after eligibility filtering:
+
+- limits 1 and 2 return the best global candidates;
+- limits 3 through 5 start with one jobs/workflows, one pull request, and one
+  issue when those categories have candidates, then fill remaining slots by
+  global order;
+- limit 6 starts with two candidates from each category;
+- larger limits use `floor(limit / 3)` candidates per category and fill the
+  remainder by global order;
+- missing categories redistribute their unused slots.
+
+The jobs/workflows category contains failed and running jobs and workflow
+runs. Failed runs and failed jobs remain distinct items. When an alternative
+exists, the first three returned items avoid showing both the failed run and a
+failed job from the same `repository` and workflow run. If no alternative
+exists, both remain available. The returned items follow the deterministic
+global ordering, except that a duplicate incident is deferred after the
+protected top three when the selected set already contains a safe alternative.
+
+The projection is calculated during complete snapshot construction. Reads
+select from immutable snapshot data and never acknowledge, remove, reserve,
+or maintain per-consumer state. `/v1/runs`, `/v1/jobs`, and the grouped arrays
+are not filtered by activity age or diversity. Their workflow history remains
+bounded by `GHINFO_RUN_HISTORY` per repository; “all history” means all
+history retained by that configuration, not the complete history available on
+GitHub. `firstSeenAt`, event history, and persistence are deferred.
 
 Illustrative future shape:
 
@@ -258,10 +299,8 @@ Illustrative future shape:
 }
 ```
 
-This is a design target, not part of the current response until its priority
-rules are approved in an ADR. “Newly observed since the previous poll” also
-requires `firstSeenAt` state and is deferred; creation/update recency can be
-used without persistence.
+“Newly observed since the previous poll” still requires `firstSeenAt` state and
+is deferred; creation/update recency is evaluated without persistence.
 
 ## Versioning policy
 

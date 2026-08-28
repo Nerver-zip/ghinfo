@@ -261,10 +261,16 @@ Delivered as an additive extension to `/v1/activity`:
 - issue/PR titles and run/job names;
 - deterministic priority, recency, repository, kind, and ID ordering;
 - compatibility-preserving grouped activity fields;
-- non-consuming reads without acknowledgements or per-consumer state.
+- non-consuming reads without acknowledgements or per-consumer state;
+- temporal aging of workflow failures and expiry from the bounded projection;
+- balanced jobs/workflows, pull requests, and issues selection for `limit`;
+- additive running-workflow items and explicit age signals;
+- retained workflow history remains available through `/v1/runs`.
 
-`firstSeenAt`, event history, and persistence remain deferred. The decision is
-recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md).
+`firstSeenAt`, event history, and persistence remain deferred. The original
+projection decision is recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md);
+the temporal and diversity rules are recorded in
+[ADR-0002](adr/0002-temporal-diversified-activity.md).
 
 ## Post-MVP candidates
 

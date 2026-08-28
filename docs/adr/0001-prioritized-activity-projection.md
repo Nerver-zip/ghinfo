@@ -4,6 +4,9 @@
 - Date: 2026-08-26
 - Scope: additive `/v1/activity` extension
 
+Temporal aging, category diversity, and incident handling are subsequent
+additive refinements recorded in [ADR-0002](0002-temporal-diversified-activity.md).
+
 ## Context
 
 The current activity endpoint exposes separate groups of running jobs, failed
@@ -22,7 +25,7 @@ Extend `GET /v1/activity` additively with `activity.items`. The existing
 `runningJobs`, `failedRuns`, `pullRequests`, and `issues` arrays remain in the
 response unchanged. The item list is derived while a complete snapshot is
 constructed and is stored as immutable snapshot data. HTTP handlers only
-validate the requested limit and copy a prefix of that list.
+validate the requested limit and select from that immutable list.
 
 ### Request contract
 
@@ -50,17 +53,18 @@ included only when applicable:
 
 The `signals` array contains stable explanations such as `failed_job`,
 `failed_run`, `running_job`, `open_pull_request`, or `open_issue`. No opaque
-numeric score is exposed.
+numeric score is exposed. The base priority classification above is subject
+to the temporal failure policy in ADR-0002.
 
 ### Ordering
 
-Items are ordered by priority band (`critical`, `high`, `normal`), then by
-effective timestamp descending, repository ascending, kind ascending, and
-stable numeric ID ascending. Effective timestamps are `updatedAt` for issues,
-pull requests, and workflow runs; a job uses `completedAt`, then `startedAt`.
-Jobs without either timestamp sort after timestamped items in their priority
-band. Recency therefore affects ordering while an urgent failure cannot be
-silently outranked by a newer low-urgency item.
+Eligible items are ordered by priority band (`critical`, `high`, `normal`),
+then by effective timestamp descending, repository ascending, kind ascending,
+and stable numeric ID ascending. Effective timestamps are `updatedAt` for
+issues, pull requests, and workflow runs; a job uses `completedAt`, then
+`startedAt`. Jobs without either timestamp sort after timestamped items in
+their priority band. The limit selector's category balancing and top-three
+incident handling are defined by ADR-0002.
 
 The projection is deterministic for equal inputs. The priority band is an
 explicit urgency classification; recency is an explicit ordering signal rather

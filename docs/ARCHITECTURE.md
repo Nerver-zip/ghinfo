@@ -115,15 +115,28 @@ snapshot is being built. HTTP handlers only slice the immutable list for
 
 The projection uses domain fields already normalized by ghinfo: `title` for
 issues and pull requests, `name` for workflow runs and jobs, stable IDs, and
-UTC timestamps. It exposes `critical`, `high`, and `normal` priority bands,
-stable signals, and deterministic recency/repository/kind/ID ordering instead
-of a consumer-facing opaque score. Failed runs and failed jobs are distinct
-items. “New since last observation” is deferred until first-seen state has an
-explicit lifetime/persistence policy.
+UTC timestamps. Failed workflow runs and jobs are classified relative to
+`Snapshot::generated_at`: failures up to 7 days are `critical`, failures over
+7 and up to 30 days are `normal` with `stale_failure`, and older failures are
+excluded from the projection. Running jobs and workflow runs remain relevant.
+It exposes `critical`, `high`, and `normal` priority bands, stable signals,
+and deterministic recency/repository/kind/ID ordering instead of a
+consumer-facing opaque score. Failed runs and failed jobs are distinct items.
+
+The HTTP limit view balances three categories—jobs/workflows, open pull
+requests, and open issues—using equal rounds, redistributing missing category
+slots and filling remainders by global priority. This selection is computed
+from the immutable item vector for each read; it is not a queue and has no
+consumer state. The first three items avoid a failed run/job duplicate for the
+same repository and workflow run when another candidate exists; the duplicate
+is deterministically deferred beyond the protected top three. “New since last
+observation” is deferred until first-seen state has an explicit
+lifetime/persistence policy.
 
 The projection is built once for each complete candidate snapshot and stored in
-`Snapshot::activity_items`. An HTTP request validates `limit` and copies only
-the requested prefix; it never invokes GitHub or mutates the snapshot.
+`Snapshot::activity_items`. An HTTP request validates `limit`, performs the
+deterministic in-memory selection, and copies the selected values; it never
+invokes GitHub or mutates the snapshot.
 
 ## Domain model
 
