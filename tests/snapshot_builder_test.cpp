@@ -60,8 +60,8 @@ class LocalHttpServer {
     int port_{};
 };
 
-void register_repository(httplib::Server& server, const std::string& full_name,
-                         bool healthy = true) {
+void register_repository(httplib::Server& server, const std::string& full_name, bool healthy = true,
+                         std::string runs = read_fixture("tests/fixtures/github/runs.json")) {
     const auto repository_body = std::string{"{\"id\":"} +
                                  (full_name == "a/repo" ? "1001" : "1002") + ",\"full_name\":\"" +
                                  full_name +
@@ -70,7 +70,6 @@ void register_repository(httplib::Server& server, const std::string& full_name,
                                  full_name + "\",\"updated_at\":\"2026-08-26T13:00:00Z\"}";
     const auto issues = read_fixture("tests/fixtures/github/issues.json");
     const auto pull_requests = read_fixture("tests/fixtures/github/pulls.json");
-    const auto runs = read_fixture("tests/fixtures/github/runs.json");
     const auto jobs = read_fixture("tests/fixtures/github/jobs.json");
     const auto add_rate_headers = [](httplib::Response& response) {
         response.set_header("X-RateLimit-Limit", "5000");
@@ -117,16 +116,21 @@ void register_repository(httplib::Server& server, const std::string& full_name,
             add_rate_headers(response);
             response.set_content(runs, "application/json");
         });
-    server.Get(
-        "/repos/" + full_name + "/actions/runs/3001/jobs",
-        [jobs, add_rate_headers, healthy](const httplib::Request&, httplib::Response& response) {
-            if (!healthy) {
-                response.status = 503;
-                return;
-            }
-            add_rate_headers(response);
-            response.set_content(jobs, "application/json");
-        });
+    const auto register_jobs = [&](const std::string& run_id) {
+        server.Get("/repos/" + full_name + "/actions/runs/" + run_id + "/jobs",
+                   [jobs, add_rate_headers, healthy](const httplib::Request&,
+                                                     httplib::Response& response) {
+                       if (!healthy) {
+                           response.status = 503;
+                           return;
+                       }
+                       add_rate_headers(response);
+                       response.set_content(jobs, "application/json");
+                   });
+    };
+    register_jobs("3001");
+    register_jobs("3002");
+    register_jobs("3003");
 }
 
 TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
@@ -167,6 +171,44 @@ TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
     EXPECT_EQ(snapshot.rate_limit->remaining, 4999U);
     ASSERT_TRUE(snapshot.rate_limit->reset_at.has_value());
     EXPECT_EQ(snapshot.rate_limit->reset_at.value(), "1970-01-01T00:00:00Z");
+}
+
+TEST(SnapshotBuilderTest, ExpandsOnlyRecentRunsAndKeepsActiveRunsOutsideWindow) {
+    LocalHttpServer server;
+    const auto runs = R"({
+        "total_count": 3,
+        "workflow_runs": [
+            {"id":3003,"name":"newest","status":"completed","conclusion":"success",
+             "head_branch":"main","head_sha":"sha3","event":"push",
+             "created_at":"2026-08-26T12:00:00Z","updated_at":"2026-08-26T12:01:00Z",
+             "html_url":"https://github.com/a/repo/actions/runs/3003"},
+            {"id":3002,"name":"middle","status":"completed","conclusion":"success",
+             "head_branch":"main","head_sha":"sha2","event":"push",
+             "created_at":"2026-08-25T12:00:00Z","updated_at":"2026-08-25T12:01:00Z",
+             "html_url":"https://github.com/a/repo/actions/runs/3002"},
+            {"id":3001,"name":"active","status":"in_progress","conclusion":null,
+             "head_branch":"main","head_sha":"sha1","event":"push",
+             "created_at":"2026-08-20T12:00:00Z","updated_at":"2026-08-20T12:01:00Z",
+             "html_url":"https://github.com/a/repo/actions/runs/3001"}
+        ]
+    })";
+    register_repository(server.server(), "a/repo", true, runs);
+
+    ghinfo::Config config;
+    config.repositories = {ghinfo::parse_repository_ref("a/repo")};
+    config.run_history = 3;
+    config.job_run_history = 1;
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto snapshot = ghinfo::build_snapshot(config, client, 10, "2026-08-26T18:00:00Z");
+
+    EXPECT_EQ(snapshot.workflow_runs.size(), 3U);
+    EXPECT_EQ(snapshot.jobs.size(), 2U);
+    ASSERT_EQ(snapshot.activity_items.size(), 5U);
+    EXPECT_EQ(snapshot.activity_items.front().kind, ghinfo::ActivityKind::failed_job);
 }
 
 TEST(SnapshotBuilderTest, DiscoversRepositoriesWhenConfiguredForAutomaticSelection) {

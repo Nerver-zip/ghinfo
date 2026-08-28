@@ -9,8 +9,24 @@
 #include <stdexcept>
 #include <tuple>
 #include <utility>
+#include <vector>
 
 namespace ghinfo {
+
+namespace {
+
+[[nodiscard]] bool is_active(const WorkflowRun& run) {
+    return run.status == RunStatus::queued || run.status == RunStatus::in_progress;
+}
+
+[[nodiscard]] bool newer_run(const WorkflowRun* left, const WorkflowRun* right) {
+    if (left->created_at != right->created_at) {
+        return left->created_at > right->created_at;
+    }
+    return left->id > right->id;
+}
+
+} // namespace
 
 Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::uint64_t generation,
                         std::string generated_at) {
@@ -35,8 +51,23 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
                                       std::make_move_iterator(pull_requests.end()));
 
         auto workflow_runs = github.fetch_workflow_runs(repository_ref, config.run_history);
+        std::vector<const WorkflowRun*> job_runs;
+        job_runs.reserve(workflow_runs.size());
         for (const auto& run : workflow_runs) {
-            auto jobs = github.fetch_relevant_workflow_jobs(repository_ref, run);
+            job_runs.push_back(&run);
+        }
+        std::sort(job_runs.begin(), job_runs.end(), newer_run);
+        if (job_runs.size() > config.job_run_history) {
+            job_runs.resize(config.job_run_history);
+        }
+        for (const auto& run : workflow_runs) {
+            if (is_active(run) &&
+                std::find(job_runs.begin(), job_runs.end(), &run) == job_runs.end()) {
+                job_runs.push_back(&run);
+            }
+        }
+        for (const auto* run : job_runs) {
+            auto jobs = github.fetch_workflow_jobs(repository_ref, *run);
             snapshot.jobs.insert(snapshot.jobs.end(), std::make_move_iterator(jobs.begin()),
                                  std::make_move_iterator(jobs.end()));
         }

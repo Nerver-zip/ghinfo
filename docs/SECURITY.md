@@ -53,6 +53,10 @@ Treat as untrusted:
 
 Validate before use.
 
+`GHINFO_RUN_HISTORY` and `GHINFO_JOB_RUN_HISTORY` are bounded configuration
+inputs. The latter limits workflow-job API expansion to recent or active runs,
+which also limits the amount of untrusted upstream data held in the snapshot.
+
 ## Logging
 
 Logs may include:

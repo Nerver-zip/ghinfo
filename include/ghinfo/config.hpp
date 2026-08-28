@@ -36,6 +36,7 @@ struct Config {
     std::uint16_t port{8080};
     LogLevel log_level{LogLevel::info};
     std::uint32_t run_history{20};
+    std::uint32_t job_run_history{10};
 };
 
 [[nodiscard]] Config load_config_from_environment();

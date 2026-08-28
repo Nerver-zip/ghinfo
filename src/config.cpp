@@ -155,6 +155,9 @@ Config load_config_from_environment() {
     config.run_history = parse_integer<std::uint32_t>(getenv_or("GHINFO_RUN_HISTORY", "20"),
                                                       "GHINFO_RUN_HISTORY", 1U, 100U);
 
+    config.job_run_history = parse_integer<std::uint32_t>(getenv_or("GHINFO_JOB_RUN_HISTORY", "10"),
+                                                          "GHINFO_JOB_RUN_HISTORY", 1U, 100U);
+
     return config;
 }
 

@@ -161,7 +161,10 @@ Supported `status` values are `queued`, `in_progress`, `completed`, and
 
 ### `GET /v1/jobs`
 
-Relevant jobs from retained workflow runs.
+Jobs from the expanded workflow-run detail window. The window includes the
+`GHINFO_JOB_RUN_HISTORY` newest runs per repository and any active runs outside
+that window. It is independent of `GHINFO_RUN_HISTORY`, which controls the
+workflow runs returned by `/v1/runs`.
 
 Issues, pulls, runs, and jobs support the `repo=owner/name` filter. Resource
 arrays use normalized camelCase fields, explicit lowercase snake_case enum
@@ -270,10 +273,12 @@ protected top three when the selected set already contains a safe alternative.
 The projection is calculated during complete snapshot construction. Reads
 select from immutable snapshot data and never acknowledge, remove, reserve,
 or maintain per-consumer state. `/v1/runs`, `/v1/jobs`, and the grouped arrays
-are not filtered by activity age or diversity. Their workflow history remains
-bounded by `GHINFO_RUN_HISTORY` per repository; “all history” means all
-history retained by that configuration, not the complete history available on
-GitHub. `firstSeenAt`, event history, and persistence are deferred.
+are not filtered by activity age or diversity. Workflow runs remain bounded by
+`GHINFO_RUN_HISTORY` per repository, while jobs are bounded by the separate
+`GHINFO_JOB_RUN_HISTORY` expansion window plus active runs. “All history” means
+all history retained or expanded by those configurations, not the complete
+history available on GitHub. `firstSeenAt`, event history, and persistence are
+deferred.
 
 Illustrative future shape:
 

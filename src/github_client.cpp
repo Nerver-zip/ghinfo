@@ -403,15 +403,6 @@ std::vector<WorkflowJob> parse_workflow_job_page(const Json& payload,
     return jobs;
 }
 
-bool needs_job_details(const WorkflowRun& run) {
-    if (run.status != RunStatus::completed || !run.conclusion.has_value()) {
-        return true;
-    }
-    return run.conclusion.value() != Conclusion::success &&
-           run.conclusion.value() != Conclusion::skipped &&
-           run.conclusion.value() != Conclusion::neutral;
-}
-
 std::optional<std::uint32_t> header_uint32(const std::map<std::string, std::string>& headers,
                                            std::string_view name) {
     const auto found = headers.find(std::string{name});
@@ -760,12 +751,8 @@ std::vector<WorkflowRun> GitHubClient::fetch_workflow_runs(const RepositoryRef& 
     }
 }
 
-std::vector<WorkflowJob> GitHubClient::fetch_relevant_workflow_jobs(const RepositoryRef& repository,
-                                                                    const WorkflowRun& run) const {
-    if (!needs_job_details(run)) {
-        return {};
-    }
-
+std::vector<WorkflowJob> GitHubClient::fetch_workflow_jobs(const RepositoryRef& repository,
+                                                           const WorkflowRun& run) const {
     constexpr std::size_t page_size = 100;
     constexpr std::size_t max_pages = 1000;
     std::vector<WorkflowJob> jobs;

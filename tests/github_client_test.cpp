@@ -319,8 +319,7 @@ TEST(GitHubClientTest, RejectsItemsMissingTitlesOrNames) {
     run.id = 3;
     run.status = ghinfo::RunStatus::completed;
     run.conclusion = ghinfo::Conclusion::failure;
-    expect_semantic_error(
-        [&] { static_cast<void>(client.fetch_relevant_workflow_jobs(repository, run)); });
+    expect_semantic_error([&] { static_cast<void>(client.fetch_workflow_jobs(repository, run)); });
 }
 
 TEST(GitHubClientTest, FetchesAllAccessibleRepositoriesAcrossPages) {
@@ -477,7 +476,7 @@ TEST(GitHubClientTest, Preserves64BitIdsAndNullableJobTimes) {
     ghinfo::WorkflowRun run;
     run.id = 3001;
     run.status = ghinfo::RunStatus::in_progress;
-    const auto jobs = client.fetch_relevant_workflow_jobs(repository, run);
+    const auto jobs = client.fetch_workflow_jobs(repository, run);
     ASSERT_EQ(jobs.size(), 1U);
     EXPECT_EQ(jobs.front().id, std::numeric_limits<std::uint64_t>::max());
     EXPECT_FALSE(jobs.front().started_at.has_value());
@@ -612,26 +611,25 @@ TEST(GitHubClientTest, RejectsInvalidWorkflowHistoryLimit) {
                  std::invalid_argument);
 }
 
-TEST(GitHubClientTest, FetchesJobsOnlyForRelevantRuns) {
+TEST(GitHubClientTest, FetchesJobsForRequestedRunsIncludingSuccessfulWorkflows) {
     LocalHttpServer server;
     const auto first_page = read_fixture("tests/fixtures/github/jobs.json");
     std::atomic<int> request_count{0};
-    server.server().Get(
-        "/repos/owner/repo/actions/runs/3001/jobs",
-        [&](const httplib::Request& request, httplib::Response& response) {
-            ++request_count;
-            if (request.get_param_value("per_page") != "100" ||
-                request.get_param_value("page") == "") {
-                response.status = 400;
-                return;
-            }
-            if (request.get_param_value("page") == "1") {
-                response.set_header("Link", "<http://example.test/page=2>; rel=\"next\"");
-                response.set_content(first_page, "application/json");
-                return;
-            }
-            response.set_content("{\"total_count\":0,\"jobs\":[]}", "application/json");
-        });
+    const auto serve_jobs = [&](const httplib::Request& request, httplib::Response& response) {
+        ++request_count;
+        if (request.get_param_value("per_page") != "100" || request.get_param_value("page") == "") {
+            response.status = 400;
+            return;
+        }
+        if (request.get_param_value("page") == "1") {
+            response.set_header("Link", "<http://example.test/page=2>; rel=\"next\"");
+            response.set_content(first_page, "application/json");
+            return;
+        }
+        response.set_content("{\"total_count\":0,\"jobs\":[]}", "application/json");
+    };
+    server.server().Get("/repos/owner/repo/actions/runs/3001/jobs", serve_jobs);
+    server.server().Get("/repos/owner/repo/actions/runs/3002/jobs", serve_jobs);
 
     ghinfo::GitHubClient client{
         "test-token",
@@ -643,7 +641,7 @@ TEST(GitHubClientTest, FetchesJobsOnlyForRelevantRuns) {
     failed_run.id = 3001;
     failed_run.status = ghinfo::RunStatus::completed;
     failed_run.conclusion = ghinfo::Conclusion::failure;
-    const auto jobs = client.fetch_relevant_workflow_jobs(repository, failed_run);
+    const auto jobs = client.fetch_workflow_jobs(repository, failed_run);
 
     ASSERT_EQ(request_count.load(), 2);
     ASSERT_EQ(jobs.size(), 1U);
@@ -662,8 +660,12 @@ TEST(GitHubClientTest, FetchesJobsOnlyForRelevantRuns) {
     successful_run.id = 3002;
     successful_run.status = ghinfo::RunStatus::completed;
     successful_run.conclusion = ghinfo::Conclusion::success;
-    EXPECT_TRUE(client.fetch_relevant_workflow_jobs(repository, successful_run).empty());
-    EXPECT_EQ(request_count.load(), 2);
+    const auto successful_jobs = client.fetch_workflow_jobs(repository, successful_run);
+    ASSERT_EQ(successful_jobs.size(), 1U);
+    EXPECT_EQ(successful_jobs.front().id, 4001U);
+    ASSERT_TRUE(successful_jobs.front().conclusion.has_value());
+    EXPECT_EQ(successful_jobs.front().conclusion.value(), ghinfo::Conclusion::failure);
+    EXPECT_EQ(request_count.load(), 4);
 }
 
 } // namespace

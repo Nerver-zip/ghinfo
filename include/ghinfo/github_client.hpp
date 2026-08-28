@@ -62,8 +62,8 @@ class GitHubClient {
     fetch_open_pull_requests(const RepositoryRef& repository) const;
     [[nodiscard]] std::vector<WorkflowRun> fetch_workflow_runs(const RepositoryRef& repository,
                                                                std::uint32_t history_limit) const;
-    [[nodiscard]] std::vector<WorkflowJob>
-    fetch_relevant_workflow_jobs(const RepositoryRef& repository, const WorkflowRun& run) const;
+    [[nodiscard]] std::vector<WorkflowJob> fetch_workflow_jobs(const RepositoryRef& repository,
+                                                               const WorkflowRun& run) const;
     [[nodiscard]] Repository fetch_repository(const RepositoryRef& repository) const;
     [[nodiscard]] std::vector<RepositoryRef> fetch_accessible_repositories() const;
     [[nodiscard]] std::optional<RateLimit> rate_limit() const;

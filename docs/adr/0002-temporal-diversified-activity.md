@@ -33,10 +33,11 @@ have already been validated and retaining attention is safer than silently
 discarding it. Queued or in-progress workflow runs and jobs remain relevant;
 open pull requests and issues retain their existing priorities.
 
-This filtering applies only to `activity.items`. `/v1/runs`, `/v1/jobs`, and
-the grouped activity arrays continue to expose the complete current snapshot.
-Workflow history is still bounded by `GHINFO_RUN_HISTORY` per repository;
-“all history” means all retained history, not every run stored by GitHub.
+This filtering applies only to `activity.items`. `/v1/runs` and the grouped
+activity arrays continue to expose the complete current snapshot for their
+respective resources. Workflow history is still bounded by
+`GHINFO_RUN_HISTORY` per repository; job detail expansion is bounded
+separately by `GHINFO_JOB_RUN_HISTORY`, as defined in ADR-0003.
 
 ### Diversity
 

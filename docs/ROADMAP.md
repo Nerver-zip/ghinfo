@@ -13,7 +13,7 @@ The MVP is complete when:
 - selected or automatically discovered repositories are polled independently
   of consumers;
 - open issues and PRs are normalized;
-- workflow runs and relevant jobs are normalized;
+- workflow runs and jobs from the configured recent/active detail window are normalized;
 - conditional requests reduce unnecessary GitHub traffic;
 - rate-limit/backoff behavior is safe;
 - last-known-good state survives transient GitHub failure;
@@ -266,6 +266,13 @@ Delivered as an additive extension to `/v1/activity`:
 - balanced jobs/workflows, pull requests, and issues selection for `limit`;
 - additive running-workflow items and explicit age signals;
 - retained workflow history remains available through `/v1/runs`.
+
+The bounded job-expansion follow-up is also delivered: `GHINFO_RUN_HISTORY`
+controls retained workflow runs, while `GHINFO_JOB_RUN_HISTORY` (default `10`)
+controls job requests for the newest runs plus active runs. Jobs are fetched
+regardless of the parent workflow conclusion so recent individual failures are
+not hidden. The decision is recorded in
+[ADR-0003](adr/0003-bounded-job-expansion.md).
 
 `firstSeenAt`, event history, and persistence remain deferred. The original
 projection decision is recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md);

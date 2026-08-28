@@ -175,6 +175,7 @@ The image runs as a non-root user.
 | `GHINFO_PORT` | no | `8080` | HTTP port |
 | `GHINFO_LOG_LEVEL` | no | `info` | `trace`, `debug`, `info`, `warn`, `error` |
 | `GHINFO_RUN_HISTORY` | no | `20` | Maximum recent workflow runs retained per repo |
+| `GHINFO_JOB_RUN_HISTORY` | no | `10` | Maximum recent workflow runs per repo whose jobs are expanded |
 
 For Docker/Compose, set `GHINFO_BIND=0.0.0.0`.
 

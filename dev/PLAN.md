@@ -49,3 +49,12 @@ notifications, or per-consumer acknowledgement state.
 Build acceleration is separate from application persistence: CI and the
 container builder may use ccache/BuildKit caches, but runtime images and
 snapshots remain unchanged.
+
+## Current follow-up
+
+The job-detail collection is bounded independently from workflow-run history.
+`GHINFO_RUN_HISTORY` preserves the configured run window for `/v1/runs`, while
+`GHINFO_JOB_RUN_HISTORY` defaults to 10 and expands jobs only for the newest
+runs plus active runs per repository. This allows recent failed jobs inside a
+successful workflow to reach `/v1/activity` without querying all retained
+history. See [ADR-0003](../docs/adr/0003-bounded-job-expansion.md).

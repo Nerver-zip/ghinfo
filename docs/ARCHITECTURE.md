@@ -28,7 +28,8 @@ Important values:
 - explicit repository list or automatic discovery mode;
 - polling interval;
 - bind/port;
-- run history bound.
+- run history bound;
+- job-detail expansion bound.
 
 Configuration is immutable after startup in the MVP.
 
@@ -160,7 +161,14 @@ MVP intent:
 - all open issues for each configured or discovered repository;
 - all open pull requests;
 - bounded recent workflow runs;
-- jobs only for runs useful to current status (queued/running/failed/etc.).
+- jobs for the configured recent workflow-run detail window, plus active runs
+  outside that window.
+
+`GHINFO_RUN_HISTORY` controls the workflow runs retained in the snapshot.
+`GHINFO_JOB_RUN_HISTORY` independently controls how many of the newest runs
+per repository have their jobs fetched. This bounded expansion also discovers
+failed jobs inside workflows whose overall conclusion is success, skipped, or
+neutral. Active runs are always expanded so current work is not missed.
 
 Exact policies should stay configurable only when real usage requires it.
 
