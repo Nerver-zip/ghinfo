@@ -37,6 +37,7 @@ enum class ActivityKind {
     failed_job,
     failed_run,
     running_job,
+    running_run,
     pull_request,
     issue,
 };

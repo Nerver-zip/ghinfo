@@ -473,6 +473,7 @@ JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limi
     }
 
     Json running_jobs = Json::array();
+    Json running_runs = Json::array();
     Json failed_runs = Json::array();
     Json pull_requests = Json::array();
     Json issues = Json::array();
@@ -483,6 +484,9 @@ JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limi
         }
     }
     for (const auto& run : snapshot->workflow_runs) {
+        if (run.status == RunStatus::queued || run.status == RunStatus::in_progress) {
+            running_runs.push_back(workflow_run_json(run));
+        }
         if (run.conclusion == Conclusion::failure) {
             failed_runs.push_back(workflow_run_json(run));
         }
@@ -493,13 +497,13 @@ JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limi
     for (const auto& issue : snapshot->issues) {
         issues.push_back(issue_json(issue));
     }
-    const auto item_count = std::min(limit, snapshot->activity_items.size());
-    for (std::size_t index = 0; index < item_count; ++index) {
-        items.push_back(activity_item_json(snapshot->activity_items[index]));
+    for (const auto& item : select_activity_items(snapshot->activity_items, limit)) {
+        items.push_back(activity_item_json(item));
     }
 
     auto body = base_json(store, *snapshot);
-    body["activity"] = Json{{"runningJobs", std::move(running_jobs)},
+    body["activity"] = Json{{"runningRuns", std::move(running_runs)},
+                            {"runningJobs", std::move(running_jobs)},
                             {"failedRuns", std::move(failed_runs)},
                             {"pullRequests", std::move(pull_requests)},
                             {"issues", std::move(issues)},

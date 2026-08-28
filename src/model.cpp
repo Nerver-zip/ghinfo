@@ -46,6 +46,8 @@ std::string to_string(ActivityKind kind) {
         return "failed_run";
     case ActivityKind::running_job:
         return "running_job";
+    case ActivityKind::running_run:
+        return "running_run";
     case ActivityKind::pull_request:
         return "pull_request";
     case ActivityKind::issue:

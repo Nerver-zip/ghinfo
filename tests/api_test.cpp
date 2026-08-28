@@ -7,6 +7,7 @@
 #include <gtest/gtest.h>
 #include <nlohmann/json.hpp>
 
+#include <algorithm>
 #include <arpa/inet.h>
 #include <atomic>
 #include <chrono>
@@ -227,16 +228,19 @@ TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
     const auto body = nlohmann::json::parse(response.body);
     ASSERT_EQ(body.at("activity").at("runningJobs").size(), 1U);
     EXPECT_EQ(body.at("activity").at("runningJobs").at(0).at("name"), "pending-check");
+    ASSERT_EQ(body.at("activity").at("runningRuns").size(), 1U);
+    EXPECT_EQ(body.at("activity").at("runningRuns").at(0).at("name"), "Checks");
     ASSERT_EQ(body.at("activity").at("failedRuns").size(), 1U);
     EXPECT_EQ(body.at("activity").at("failedRuns").at(0).at("conclusion"), "failure");
     EXPECT_EQ(body.at("activity").at("pullRequests").size(), 1U);
     EXPECT_EQ(body.at("activity").at("issues").size(), 2U);
-    ASSERT_EQ(body.at("activity").at("items").size(), 6U);
+    ASSERT_EQ(body.at("activity").at("items").size(), 7U);
     EXPECT_EQ(body.at("activity").at("items").at(0).at("kind"), "failed_run");
-    EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "failed_job");
-    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "pull_request");
-    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "running_job");
-    EXPECT_EQ(body.at("activity").at("items").at(3).at("name"), "pending-check");
+    EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "pull_request");
+    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "running_run");
+    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "failed_job");
+    EXPECT_EQ(body.at("activity").at("items").at(4).at("kind"), "running_job");
+    EXPECT_EQ(body.at("activity").at("items").at(4).at("name"), "pending-check");
     EXPECT_FALSE(body.at("activity").contains("priority"));
     EXPECT_FALSE(body.at("activity").contains("score"));
 }
@@ -258,12 +262,39 @@ TEST(ApiTest, PrioritizedActivityMatchesGoldenAndRepeatedReads) {
     const auto limited = nlohmann::json::parse(first.body);
     ASSERT_EQ(limited.at("activity").at("items").size(), 2U);
     EXPECT_EQ(limited.at("activity").at("items").at(0).at("kind"), "failed_run");
-    EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "failed_job");
+    EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "pull_request");
 
     store.record_poll_failure("2026-08-26T20:46:31Z", "transport", "2026-08-26T20:47:31Z");
     const auto stale = nlohmann::json::parse(ghinfo::make_activity_response(store, 2).body);
     EXPECT_EQ(stale.at("activity").at("items"), limited.at("activity").at("items"));
     EXPECT_TRUE(stale.at("stale").get<bool>());
+}
+
+TEST(ApiTest, KeepsExpiredFailuresInRunsButNotInActivityItems) {
+    auto snapshot = sample_snapshot();
+    snapshot->generated_at = "2026-08-28T00:00:00Z";
+    snapshot->workflow_runs.push_back(ghinfo::WorkflowRun{
+        3999, "owner/repo", "old CI", ghinfo::RunStatus::completed, ghinfo::Conclusion::failure,
+        "main", "sha-old", "push", "2026-06-01T00:00:00Z", "2026-06-01T00:00:00Z", "old-run"});
+    snapshot->activity_items = ghinfo::build_activity_items(*snapshot);
+
+    ghinfo::SnapshotStore store;
+    store.publish(snapshot);
+    store.record_poll_success(snapshot->generated_at);
+
+    const auto activity = nlohmann::json::parse(ghinfo::make_activity_response(store, 100).body);
+    EXPECT_EQ(std::count_if(activity.at("activity").at("items").begin(),
+                            activity.at("activity").at("items").end(),
+                            [](const auto& item) { return item.at("id") == 3999U; }),
+              0);
+
+    const auto runs =
+        nlohmann::json::parse(ghinfo::make_workflow_runs_response(
+                                  *snapshot, std::string{"owner/repo"}, std::nullopt, std::nullopt)
+                                  .body);
+    EXPECT_EQ(std::count_if(runs.at("workflowRuns").begin(), runs.at("workflowRuns").end(),
+                            [](const auto& run) { return run.at("id") == 3999U; }),
+              1);
 }
 
 TEST(ApiTest, MetaIncludesSafePollAndRateLimitState) {
@@ -362,8 +393,18 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     const auto activity = client.Get("/v1/activity");
     ASSERT_TRUE(activity != nullptr);
     EXPECT_EQ(activity->status, 200);
-    EXPECT_EQ(nlohmann::json::parse(activity->body).at("activity").at("failedRuns").size(), 1U);
-    EXPECT_EQ(nlohmann::json::parse(activity->body).at("activity").at("items").size(), 5U);
+    const auto activity_body = nlohmann::json::parse(activity->body);
+    EXPECT_EQ(activity_body.at("activity").at("runningRuns").size(), 1U);
+    EXPECT_EQ(activity_body.at("activity").at("failedRuns").size(), 1U);
+    EXPECT_EQ(activity_body.at("activity").at("items").size(), 6U);
+
+    for (const auto limit : {1, 2, 3, 4, 5, 6}) {
+        const auto limited = client.Get("/v1/activity?limit=" + std::to_string(limit));
+        ASSERT_TRUE(limited != nullptr);
+        ASSERT_EQ(limited->status, 200);
+        EXPECT_EQ(nlohmann::json::parse(limited->body).at("activity").at("items").size(),
+                  static_cast<std::size_t>(limit));
+    }
 
     const auto limited_activity = client.Get("/v1/activity?limit=2");
     ASSERT_TRUE(limited_activity != nullptr);
@@ -373,7 +414,7 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     const auto max_activity = client.Get("/v1/activity?limit=100");
     ASSERT_TRUE(max_activity != nullptr);
     EXPECT_EQ(max_activity->status, 200);
-    EXPECT_EQ(nlohmann::json::parse(max_activity->body).at("activity").at("items").size(), 5U);
+    EXPECT_EQ(nlohmann::json::parse(max_activity->body).at("activity").at("items").size(), 6U);
 
     for (const auto* value : {"0", "101", "-1", "invalid", "", "18446744073709551616"}) {
         const auto invalid_limit = client.Get(std::string{"/v1/activity?limit="} + value);
