@@ -291,7 +291,7 @@ Only after usage demonstrates need:
 
 ### v0.2+
 
-- richer activity filtering;
+- additional activity filtering beyond the delivered category views;
 - optional self-API bearer token;
 - per-resource polling cadence.
 
