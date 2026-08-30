@@ -1,10 +1,7 @@
 # ghinfo activity widget for Kustom
 
-This directory contains a text recipe for a consumer-side Kustom/KWGT widget.
-It is intentionally separate from the `ghinfo` daemon: it does not add
-consumer-specific fields or endpoints to the service.
-
-The widget shows the three highest-priority items from:
+This directory contains a Kustom/KWGT widget and text templates for displaying
+the three highest-priority items returned by `ghinfo`:
 
 ```text
 GET http://<ghinfo-host>:8080/v1/activity?limit=3
@@ -12,6 +9,15 @@ GET http://<ghinfo-host>:8080/v1/activity?limit=3
 
 The address must be reachable from the Android device running Kustom. Do not
 put the GitHub token in Kustom; authentication remains owned by `ghinfo`.
+
+## Ready-to-import preset
+
+The ready-to-import widget preset is available at
+[`../assets/ghinfo-kustom-widget.kwgt`](../assets/ghinfo-kustom-widget.kwgt).
+Import this file in Kustom to load the layout, text formulas, Catppuccin
+colors, font, and activity flows. After importing, update the WebGet URLs if
+your `ghinfo` server uses a different address. The preset contains no GitHub
+credential.
 
 ## Kustom setup
 
@@ -21,20 +27,15 @@ put the GitHub token in Kustom; authentication remains owned by `ghinfo`.
    enabled so the global contains the JSON response.
 4. Trigger the Flow on load and periodically according to the desired refresh
    interval.
-5. Add a title Text module and the three card rows using the formulas in
-   [`activity-widget.txt`](activity-widget.txt). The rows are indexed from
-   `0` through `2`.
-   For a single Text module, use the paste-ready
-   [`example.txt`](example.txt) instead.
-   For the same three-card layout with inline Catppuccin Mocha colors, paste
-   [`catpuccin_example.txt`](catpuccin_example.txt) directly into the Text
-   field.
+5. For a single Text module, paste the formula from
+   [`example.txt`](example.txt). For the Catppuccin Mocha version, use
+   [`catpuccin_example.txt`](catpuccin_example.txt) instead.
 
 ## Catppuccin Mocha palette
 
 Set the title and detail text to `#CDD6F4`, repository text to `#A6ADC8`, and
-borders/dividers to `#45475A`. The card header and status can use the dynamic
-color formula in `activity-widget.txt`:
+borders/dividers to `#45475A`. For dynamic card colors, use this formula in
+the Text Color property:
 
 ```text
 $if(gv(ghinfo)="","#6C7086",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_run","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_job","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="running_job","#A6E3A1",if(tc(json,gv(ghinfo),".activity.items[0].kind")="pull_request","#CBA6F7","#F9E2AF")))))$
@@ -49,18 +50,11 @@ The formulas parse the raw JSON stored in `ghinfo` with Kustom's
 `tc(json, ...)` converter. If WebGet exposes a file path instead of its
 contents, change that action to store the response body before parsing.
 
-## Visual mapping
+The API returns items in priority and recency order. The preset includes the
+font needed for the widget icons.
 
-```text
-  pull_request
-  issue
-  running_job
-  failed_run or failed_job
-```
-
-The service already orders the items by priority, recency, and deterministic
-tie-breakers. The recipe only renders the returned order; it does not mark
-anything as read or maintain consumer state.
+Pull-request cards show `open pull request` or `closed pull request` according
+to the state returned by `ghinfo`.
 
 ## Empty-global troubleshooting
 
