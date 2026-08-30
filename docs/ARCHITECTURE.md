@@ -135,9 +135,13 @@ observation” is deferred until first-seen state has an explicit
 lifetime/persistence policy.
 
 The projection is built once for each complete candidate snapshot and stored in
-`Snapshot::activity_items`. An HTTP request validates `limit`, performs the
-deterministic in-memory selection, and copies the selected values; it never
-invokes GitHub or mutates the snapshot.
+`Snapshot::activity_items`. An HTTP request validates `limit` and the optional
+activity category, performs the deterministic in-memory selection, and copies
+the selected values; it never invokes GitHub or mutates the snapshot. Omitting
+the category preserves the balanced jobs/workflows, pull requests, and issues
+view. A category filter selects only its domain items while retaining the
+projection's eligibility, priority, recency, and workflow incident
+deduplication rules.
 
 ## Domain model
 

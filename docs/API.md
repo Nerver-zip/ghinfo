@@ -215,6 +215,29 @@ The omitted `limit` defaults to `20`; valid values are `1` through `100`.
 Empty, non-numeric, zero, negative, overflowing, and over-limit values return
 `400` with `invalid_limit`. The existing grouped arrays remain unchanged.
 
+An optional `category` parameter returns the same ordered projection restricted
+to one activity category:
+
+```text
+GET /v1/activity?category=workflows&limit=3
+GET /v1/activity?category=pull_requests&limit=3
+GET /v1/activity?category=issues&limit=3
+```
+
+`workflows` includes `failed_run`, `failed_job`, `running_run`, and
+`running_job` items. `pull_requests` includes only `pull_request` items, and
+`issues` includes only `issue` items. Category filtering occurs after the
+temporal eligibility policy, so expired failures remain absent from every
+category view. The selected items retain the existing priority, recency, and
+deterministic tie-break ordering; workflow views also retain failed
+run/failed job incident deduplication for the protected top three when an
+alternative exists.
+
+When `category` is omitted, the existing diversified selection is preserved.
+Grouped arrays are returned unchanged regardless of the category filter, and
+the response envelope remains the same. An empty or unsupported category
+returns `400` with `invalid_category`.
+
 Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
 `updatedAt`, and `url`. The item kinds are:
 

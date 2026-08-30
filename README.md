@@ -28,7 +28,8 @@ A tiny, headless, self-hosted GitHub status service.
 Prioritized activity is implemented as a read-only snapshot projection rather
 than a notification queue. Consumers can request a bounded ordered view with
 `GET /v1/activity?limit=N`; the existing grouped activity fields remain
-available for compatibility.
+available for compatibility. Independent category views are available through
+`category=workflows`, `category=pull_requests`, and `category=issues`.
 
 ## Planned architecture
 

@@ -46,6 +46,17 @@ present in the local checkout.
 The implementation should remain in-memory and should not add SQLite, a broker,
 notifications, or per-consumer acknowledgement state.
 
+## Completed activity category views
+
+`GET /v1/activity` now accepts the optional `category` filter with the values
+`workflows`, `pull_requests`, and `issues`. Category views provide bounded,
+consumer-agnostic lists for independent widget controls while preserving the
+existing no-category diversity behavior and response envelope. Filtering is
+performed over immutable snapshot data after failure-age eligibility, with the
+same priority, recency, deterministic tie-break, and workflow incident
+deduplication rules. Invalid categories return `invalid_category` with HTTP
+400.
+
 Build acceleration is separate from application persistence: CI and the
 container builder may use ccache/BuildKit caches, but runtime images and
 snapshots remain unchanged.

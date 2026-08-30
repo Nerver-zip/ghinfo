@@ -267,6 +267,12 @@ Delivered as an additive extension to `/v1/activity`:
 - additive running-workflow items and explicit age signals;
 - retained workflow history remains available through `/v1/runs`.
 
+The projection also supports additive category views for consumers that need
+independent bounded lists: `category=workflows`, `category=pull_requests`, and
+`category=issues`. The original no-category diversified view remains the
+compatibility default; category views reuse the same immutable snapshot and
+ordering rules.
+
 The bounded job-expansion follow-up is also delivered: `GHINFO_RUN_HISTORY`
 controls retained workflow runs, while `GHINFO_JOB_RUN_HISTORY` (default `10`)
 controls job requests for the newest runs plus active runs. Jobs are fetched

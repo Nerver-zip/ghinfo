@@ -293,13 +293,33 @@ TEST(ActivityTest, SelectsOnlyRequestedCategoryInExistingActivityOrder) {
     }));
 
     ASSERT_EQ(pull_requests.size(), 3U);
+    EXPECT_EQ(pull_requests[0].id, 5004U);
+    EXPECT_EQ(pull_requests[1].id, 5003U);
+    EXPECT_EQ(pull_requests[2].id, 5002U);
     EXPECT_TRUE(std::all_of(pull_requests.begin(), pull_requests.end(), [](const auto& item) {
         return item.kind == ghinfo::ActivityKind::pull_request;
     }));
     ASSERT_EQ(issues.size(), 3U);
+    EXPECT_EQ(issues[0].id, 6004U);
+    EXPECT_EQ(issues[1].id, 6003U);
+    EXPECT_EQ(issues[2].id, 6002U);
     EXPECT_TRUE(std::all_of(issues.begin(), issues.end(), [](const auto& item) {
         return item.kind == ghinfo::ActivityKind::issue;
     }));
+
+    EXPECT_EQ(ghinfo::select_activity_items(items, 1, ghinfo::ActivityCategory::issues).size(), 1U);
+    EXPECT_EQ(ghinfo::select_activity_items(items, 100, ghinfo::ActivityCategory::issues).size(),
+              4U);
+
+    snapshot.issues.clear();
+    snapshot.pull_requests.clear();
+    const auto workflow_only_items = ghinfo::build_activity_items(snapshot);
+    EXPECT_TRUE(ghinfo::select_activity_items(workflow_only_items, 3,
+                                              ghinfo::ActivityCategory::pull_requests)
+                    .empty());
+    EXPECT_TRUE(
+        ghinfo::select_activity_items(workflow_only_items, 3, ghinfo::ActivityCategory::issues)
+            .empty());
 }
 
 TEST(ActivityTest, AvoidsIncidentDuplicatesInTopThreeButKeepsBothAtLargerLimits) {
