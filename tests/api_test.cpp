@@ -270,6 +270,38 @@ TEST(ApiTest, PrioritizedActivityMatchesGoldenAndRepeatedReads) {
     EXPECT_TRUE(stale.at("stale").get<bool>());
 }
 
+TEST(ApiTest, ActivityCategoryFiltersItemsWithoutChangingGroupedData) {
+    ghinfo::SnapshotStore store;
+    store.publish(sample_snapshot());
+    store.record_poll_success("2026-08-26T20:45:31Z");
+
+    const auto workflows = nlohmann::json::parse(
+        ghinfo::make_activity_response(store, 3, ghinfo::ActivityCategory::workflows).body);
+    const auto pull_requests = nlohmann::json::parse(
+        ghinfo::make_activity_response(store, 3, ghinfo::ActivityCategory::pull_requests).body);
+    const auto issues = nlohmann::json::parse(
+        ghinfo::make_activity_response(store, 3, ghinfo::ActivityCategory::issues).body);
+
+    ASSERT_EQ(workflows.at("activity").at("items").size(), 3U);
+    EXPECT_TRUE(std::all_of(workflows.at("activity").at("items").begin(),
+                            workflows.at("activity").at("items").end(), [](const auto& item) {
+                                return item.at("kind") == "failed_run" ||
+                                       item.at("kind") == "failed_job" ||
+                                       item.at("kind") == "running_run" ||
+                                       item.at("kind") == "running_job";
+                            }));
+    ASSERT_EQ(pull_requests.at("activity").at("items").size(), 1U);
+    EXPECT_EQ(pull_requests.at("activity").at("items").at(0).at("kind"), "pull_request");
+    ASSERT_EQ(issues.at("activity").at("items").size(), 2U);
+    EXPECT_TRUE(std::all_of(issues.at("activity").at("items").begin(),
+                            issues.at("activity").at("items").end(),
+                            [](const auto& item) { return item.at("kind") == "issue"; }));
+
+    EXPECT_EQ(workflows.at("activity").at("pullRequests").size(), 1U);
+    EXPECT_EQ(pull_requests.at("activity").at("runningRuns").size(), 1U);
+    EXPECT_EQ(issues.at("activity").at("failedRuns").size(), 1U);
+}
+
 TEST(ApiTest, KeepsExpiredFailuresInRunsButNotInActivityItems) {
     auto snapshot = sample_snapshot();
     snapshot->generated_at = "2026-08-28T00:00:00Z";
@@ -415,6 +447,38 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     ASSERT_TRUE(max_activity != nullptr);
     EXPECT_EQ(max_activity->status, 200);
     EXPECT_EQ(nlohmann::json::parse(max_activity->body).at("activity").at("items").size(), 6U);
+
+    const auto workflow_activity = client.Get("/v1/activity?category=workflows&limit=3");
+    ASSERT_TRUE(workflow_activity != nullptr);
+    ASSERT_EQ(workflow_activity->status, 200);
+    const auto workflow_items =
+        nlohmann::json::parse(workflow_activity->body).at("activity").at("items");
+    ASSERT_EQ(workflow_items.size(), 3U);
+    EXPECT_TRUE(std::all_of(workflow_items.begin(), workflow_items.end(), [](const auto& item) {
+        return item.at("kind") == "failed_run" || item.at("kind") == "failed_job" ||
+               item.at("kind") == "running_run" || item.at("kind") == "running_job";
+    }));
+
+    const auto pull_request_activity = client.Get("/v1/activity?category=pull_requests&limit=3");
+    ASSERT_TRUE(pull_request_activity != nullptr);
+    ASSERT_EQ(pull_request_activity->status, 200);
+    const auto pull_request_items =
+        nlohmann::json::parse(pull_request_activity->body).at("activity").at("items");
+    ASSERT_EQ(pull_request_items.size(), 1U);
+    EXPECT_EQ(pull_request_items.at(0).at("kind"), "pull_request");
+
+    const auto issue_activity = client.Get("/v1/activity?category=issues&limit=3");
+    ASSERT_TRUE(issue_activity != nullptr);
+    ASSERT_EQ(issue_activity->status, 200);
+    const auto issue_items = nlohmann::json::parse(issue_activity->body).at("activity").at("items");
+    ASSERT_EQ(issue_items.size(), 2U);
+    EXPECT_TRUE(std::all_of(issue_items.begin(), issue_items.end(),
+                            [](const auto& item) { return item.at("kind") == "issue"; }));
+
+    const auto invalid_category = client.Get("/v1/activity?category=unknown");
+    ASSERT_TRUE(invalid_category != nullptr);
+    EXPECT_EQ(invalid_category->status, 400);
+    EXPECT_EQ(nlohmann::json::parse(invalid_category->body).at("error"), "invalid_category");
 
     for (const auto* value : {"0", "101", "-1", "invalid", "", "18446744073709551616"}) {
         const auto invalid_limit = client.Get(std::string{"/v1/activity?limit="} + value);

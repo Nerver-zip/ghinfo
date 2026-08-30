@@ -8,6 +8,15 @@
 
 namespace {
 
+TEST(ActivityTest, ParsesSupportedCategoriesAndRejectsUnknownValues) {
+    EXPECT_EQ(ghinfo::parse_activity_category("workflows"), ghinfo::ActivityCategory::workflows);
+    EXPECT_EQ(ghinfo::parse_activity_category("pull_requests"),
+              ghinfo::ActivityCategory::pull_requests);
+    EXPECT_EQ(ghinfo::parse_activity_category("issues"), ghinfo::ActivityCategory::issues);
+    EXPECT_FALSE(ghinfo::parse_activity_category("unknown").has_value());
+    EXPECT_FALSE(ghinfo::parse_activity_category("").has_value());
+}
+
 TEST(ActivityTest, ClassifiesItemsAndOrdersByPriorityThenRecency) {
     ghinfo::Snapshot snapshot;
     snapshot.generated_at = "2026-08-26T20:00:00Z";
@@ -245,6 +254,52 @@ TEST(ActivityTest, SelectsBalancedCategoriesAndRedistributesMissingCategories) {
     const auto redistributed = ghinfo::select_activity_items(without_issues, 6);
     EXPECT_EQ(redistributed.size(), 6U);
     EXPECT_EQ(count_category(redistributed, 2), 0);
+}
+
+TEST(ActivityTest, SelectsOnlyRequestedCategoryInExistingActivityOrder) {
+    ghinfo::Snapshot snapshot;
+    snapshot.generated_at = "2026-08-28T00:00:00Z";
+    for (ghinfo::GithubId id = 1; id <= 4; ++id) {
+        snapshot.jobs.push_back(ghinfo::WorkflowJob{
+            4000 + id, 3000 + id, "owner/repo", "job", ghinfo::RunStatus::in_progress, std::nullopt,
+            "2026-08-27T" + std::to_string(10 + id) + ":00:00Z", std::nullopt, "job"});
+        snapshot.pull_requests.push_back(
+            ghinfo::PullRequest{5000 + id, id, "owner/repo", "pr", "user", false, "head", "main",
+                                "", "2026-08-27T" + std::to_string(10 + id) + ":00:00Z", "pr"});
+        snapshot.issues.push_back(ghinfo::Issue{6000 + id,
+                                                id,
+                                                "owner/repo",
+                                                "issue",
+                                                "user",
+                                                {},
+                                                "",
+                                                "2026-08-27T" + std::to_string(10 + id) + ":00:00Z",
+                                                "issue"});
+    }
+
+    const auto items = ghinfo::build_activity_items(snapshot);
+    const auto workflows =
+        ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::workflows);
+    const auto pull_requests =
+        ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::pull_requests);
+    const auto issues = ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::issues);
+
+    ASSERT_EQ(workflows.size(), 3U);
+    EXPECT_EQ(workflows[0].id, 4004U);
+    EXPECT_EQ(workflows[1].id, 4003U);
+    EXPECT_EQ(workflows[2].id, 4002U);
+    EXPECT_TRUE(std::all_of(workflows.begin(), workflows.end(), [](const auto& item) {
+        return item.kind == ghinfo::ActivityKind::running_job;
+    }));
+
+    ASSERT_EQ(pull_requests.size(), 3U);
+    EXPECT_TRUE(std::all_of(pull_requests.begin(), pull_requests.end(), [](const auto& item) {
+        return item.kind == ghinfo::ActivityKind::pull_request;
+    }));
+    ASSERT_EQ(issues.size(), 3U);
+    EXPECT_TRUE(std::all_of(issues.begin(), issues.end(), [](const auto& item) {
+        return item.kind == ghinfo::ActivityKind::issue;
+    }));
 }
 
 TEST(ActivityTest, AvoidsIncidentDuplicatesInTopThreeButKeepsBothAtLargerLimits) {

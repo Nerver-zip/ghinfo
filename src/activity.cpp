@@ -161,6 +161,19 @@ enum class FailureAge {
     return 2;
 }
 
+[[nodiscard]] bool belongs_to(ActivityKind kind, ActivityCategory activity_category) {
+    switch (activity_category) {
+    case ActivityCategory::workflows:
+        return kind == ActivityKind::failed_job || kind == ActivityKind::failed_run ||
+               kind == ActivityKind::running_job || kind == ActivityKind::running_run;
+    case ActivityCategory::pull_requests:
+        return kind == ActivityKind::pull_request;
+    case ActivityCategory::issues:
+        return kind == ActivityKind::issue;
+    }
+    return false;
+}
+
 [[nodiscard]] bool same_item(const ActivityItem& left, const ActivityItem& right) {
     return left.kind == right.kind && left.repository == right.repository && left.id == right.id;
 }
@@ -254,6 +267,19 @@ void remove_top_three_incident_duplicates(const std::vector<ActivityItem>& all_i
 
 } // namespace
 
+std::optional<ActivityCategory> parse_activity_category(std::string_view value) {
+    if (value == "workflows") {
+        return ActivityCategory::workflows;
+    }
+    if (value == "pull_requests") {
+        return ActivityCategory::pull_requests;
+    }
+    if (value == "issues") {
+        return ActivityCategory::issues;
+    }
+    return std::nullopt;
+}
+
 std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
     std::vector<ActivityItem> items;
     items.reserve(snapshot.jobs.size() + snapshot.workflow_runs.size() +
@@ -339,13 +365,35 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
 }
 
 std::vector<ActivityItem> select_activity_items(const std::vector<ActivityItem>& items,
-                                                std::size_t limit) {
+                                                std::size_t limit,
+                                                std::optional<ActivityCategory> category_filter) {
     if (limit == 0 || items.empty()) {
         return {};
     }
 
     std::vector<ActivityItem> selected;
     selected.reserve(std::min(limit, items.size()));
+
+    if (category_filter.has_value()) {
+        std::vector<ActivityItem> category_items;
+        category_items.reserve(items.size());
+        for (const auto& item : items) {
+            if (belongs_to(item.kind, *category_filter)) {
+                category_items.push_back(item);
+            }
+        }
+        selected.reserve(std::min(limit, category_items.size()));
+        for (const auto& item : category_items) {
+            selected.push_back(item);
+            if (selected.size() == limit) {
+                break;
+            }
+        }
+        if (*category_filter == ActivityCategory::workflows) {
+            remove_top_three_incident_duplicates(category_items, selected);
+        }
+        return selected;
+    }
 
     if (limit < 3) {
         for (const auto& item : items) {

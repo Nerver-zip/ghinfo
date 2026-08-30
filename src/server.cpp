@@ -239,6 +239,20 @@ void write_response(const JsonResponse& payload, httplib::Response& response) {
     return parsed;
 }
 
+[[nodiscard]] std::optional<ActivityCategory>
+activity_category_filter(const httplib::Request& request, JsonResponse& error) {
+    const auto value = query_param(request, "category");
+    if (!value.has_value()) {
+        return std::nullopt;
+    }
+
+    const auto category = parse_activity_category(*value);
+    if (!category.has_value()) {
+        error = error_response("invalid_category", 400);
+    }
+    return category;
+}
+
 } // namespace
 
 std::shared_ptr<const Snapshot> SnapshotStore::get() const {
@@ -466,7 +480,8 @@ JsonResponse make_workflow_jobs_response(const Snapshot& snapshot,
     return json_response(body);
 }
 
-JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limit) {
+JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limit,
+                                    std::optional<ActivityCategory> category) {
     const auto snapshot = store.get();
     if (snapshot == nullptr) {
         return make_snapshot_unavailable_response();
@@ -497,7 +512,7 @@ JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limi
     for (const auto& issue : snapshot->issues) {
         issues.push_back(issue_json(issue));
     }
-    for (const auto& item : select_activity_items(snapshot->activity_items, limit)) {
+    for (const auto& item : select_activity_items(snapshot->activity_items, limit, category)) {
         items.push_back(activity_item_json(item));
     }
 
@@ -632,7 +647,12 @@ void ApiServer::register_routes() {
                         write_response(error, response);
                         return;
                     }
-                    write_response(make_activity_response(store_, *limit), response);
+                    const auto category = activity_category_filter(request, error);
+                    if (!error.body.empty()) {
+                        write_response(error, response);
+                        return;
+                    }
+                    write_response(make_activity_response(store_, *limit, category), response);
                 });
 }
 

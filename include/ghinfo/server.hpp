@@ -35,8 +35,9 @@ make_workflow_runs_response(const Snapshot& snapshot, const std::optional<std::s
                             const std::optional<std::string>& conclusion);
 [[nodiscard]] JsonResponse
 make_workflow_jobs_response(const Snapshot& snapshot, const std::optional<std::string>& repository);
-[[nodiscard]] JsonResponse make_activity_response(const SnapshotStore& store,
-                                                  std::size_t limit = kDefaultActivityLimit);
+[[nodiscard]] JsonResponse
+make_activity_response(const SnapshotStore& store, std::size_t limit = kDefaultActivityLimit,
+                       std::optional<ActivityCategory> category = std::nullopt);
 [[nodiscard]] JsonResponse make_snapshot_unavailable_response();
 
 class ApiServer {
