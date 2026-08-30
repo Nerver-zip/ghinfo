@@ -5,8 +5,8 @@
 The implementation milestones through MVP-017, the prioritized activity
 projection, and its temporal/diversified follow-up are complete in the local
 checkout. The projection is additive, in-memory, read-only, and covered by
-the current API, snapshot, parser, and sanitizer tests. The `v0.1.0` tag has
-been published remotely; the rewritten main branch still requires external
+the current API, snapshot, parser, and sanitizer tests. The `v0.3.0` tag is
+the current release target; the rewritten main branch still requires external
 synchronization.
 
 ## Final audit criteria
@@ -78,3 +78,10 @@ separately and exposed only as normal-priority `pull_request` activity items
 with the `recent_closed_pull_request` signal. Open-only resource and grouped
 activity contracts remain unchanged. See
 [ADR-0005](../docs/adr/0005-recent-closed-pull-request-fallback.md).
+
+## Completed active-work priority
+
+Queued and in-progress workflow runs and jobs are classified as `critical` and
+therefore sort ahead of recent failures. Recent failures are `high`, stale
+failures remain `normal`, and the existing 7/30-day eligibility policy is
+unchanged. See [ADR-0006](../docs/adr/0006-active-work-priority.md).

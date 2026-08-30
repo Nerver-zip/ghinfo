@@ -74,7 +74,7 @@ class GitHubClient {
 
     static constexpr std::string_view api_base{"https://api.github.com"};
     static constexpr std::string_view api_version{"2026-03-10"};
-    static constexpr std::string_view user_agent{"ghinfo/0.1.0"};
+    static constexpr std::string_view user_agent{"ghinfo/0.3.0"};
 
   private:
     struct CachedResponse {

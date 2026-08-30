@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.25)
 
 project(
     ghinfo
-    VERSION 0.1.0
+    VERSION 0.3.0
     DESCRIPTION "Tiny headless self-hosted GitHub status service"
     LANGUAGES CXX
 )

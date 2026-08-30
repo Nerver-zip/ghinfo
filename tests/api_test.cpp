@@ -235,12 +235,12 @@ TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
     EXPECT_EQ(body.at("activity").at("pullRequests").size(), 1U);
     EXPECT_EQ(body.at("activity").at("issues").size(), 2U);
     ASSERT_EQ(body.at("activity").at("items").size(), 7U);
-    EXPECT_EQ(body.at("activity").at("items").at(0).at("kind"), "failed_run");
-    EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "pull_request");
-    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "running_run");
-    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "failed_job");
-    EXPECT_EQ(body.at("activity").at("items").at(4).at("kind"), "running_job");
-    EXPECT_EQ(body.at("activity").at("items").at(4).at("name"), "pending-check");
+    EXPECT_EQ(body.at("activity").at("items").at(0).at("kind"), "running_run");
+    EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "running_job");
+    EXPECT_EQ(body.at("activity").at("items").at(1).at("name"), "pending-check");
+    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "pull_request");
+    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "failed_run");
+    EXPECT_EQ(body.at("activity").at("items").at(4).at("kind"), "failed_job");
     EXPECT_FALSE(body.at("activity").contains("priority"));
     EXPECT_FALSE(body.at("activity").contains("score"));
 }
@@ -261,7 +261,7 @@ TEST(ApiTest, PrioritizedActivityMatchesGoldenAndRepeatedReads) {
     EXPECT_EQ(first.body, second.body);
     const auto limited = nlohmann::json::parse(first.body);
     ASSERT_EQ(limited.at("activity").at("items").size(), 2U);
-    EXPECT_EQ(limited.at("activity").at("items").at(0).at("kind"), "failed_run");
+    EXPECT_EQ(limited.at("activity").at("items").at(0).at("kind"), "running_run");
     EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "pull_request");
 
     store.record_poll_failure("2026-08-26T20:46:31Z", "transport", "2026-08-26T20:47:31Z");

@@ -170,7 +170,7 @@ TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
     EXPECT_EQ(snapshot.workflow_runs.size(), 2U);
     EXPECT_EQ(snapshot.jobs.size(), 2U);
     EXPECT_EQ(snapshot.activity_items.size(), 8U);
-    EXPECT_EQ(snapshot.activity_items.front().kind, ghinfo::ActivityKind::failed_run);
+    EXPECT_EQ(snapshot.activity_items.front().kind, ghinfo::ActivityKind::pull_request);
     EXPECT_EQ(snapshot.jobs[0].repository, "a/repo");
     ASSERT_TRUE(snapshot.rate_limit.has_value());
     EXPECT_EQ(snapshot.rate_limit->limit, 5000U);
@@ -244,7 +244,7 @@ TEST(SnapshotBuilderTest, ExpandsOnlyRecentRunsAndKeepsActiveRunsOutsideWindow) 
     EXPECT_EQ(snapshot.workflow_runs.size(), 3U);
     EXPECT_EQ(snapshot.jobs.size(), 2U);
     ASSERT_EQ(snapshot.activity_items.size(), 5U);
-    EXPECT_EQ(snapshot.activity_items.front().kind, ghinfo::ActivityKind::failed_job);
+    EXPECT_EQ(snapshot.activity_items.front().kind, ghinfo::ActivityKind::running_run);
 }
 
 TEST(SnapshotBuilderTest, DiscoversRepositoriesWhenConfiguredForAutomaticSelection) {

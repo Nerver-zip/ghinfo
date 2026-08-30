@@ -1,6 +1,6 @@
 # Release process
 
-The MVP release is `v0.1.0`.
+The current release is `v0.3.0`.
 
 Before tagging:
 
@@ -21,8 +21,8 @@ container start.
 Create and publish the tag from a clean, validated checkout:
 
 ```bash
-git tag -a v0.1.0 -m "ghinfo v0.1.0"
-git push origin main v0.1.0
+git tag -a v0.3.0 -m "ghinfo v0.3.0"
+git push origin main v0.3.0
 ```
 
 The tag triggers the container workflow, which publishes versioned image tags

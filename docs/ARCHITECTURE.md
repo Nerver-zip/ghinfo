@@ -117,12 +117,14 @@ snapshot is being built. HTTP handlers only slice the immutable list for
 The projection uses domain fields already normalized by ghinfo: `title` for
 issues and pull requests, `name` for workflow runs and jobs, stable IDs, and
 UTC timestamps. Failed workflow runs and jobs are classified relative to
-`Snapshot::generated_at`: failures up to 7 days are `critical`, failures over
-7 and up to 30 days are `normal` with `stale_failure`, and older failures are
-excluded from the projection. Running jobs and workflow runs remain relevant.
-It exposes `critical`, `high`, and `normal` priority bands, stable signals,
-and deterministic recency/repository/kind/ID ordering instead of a
-consumer-facing opaque score. Failed runs and failed jobs are distinct items.
+`Snapshot::generated_at`: active jobs and workflow runs are `critical`, recent
+failures up to 7 days are `high` with `recent_failure`, failures over 7 and up
+to 30 days are `normal` with `stale_failure`, and older failures are excluded
+from the projection. Active work therefore sorts ahead of failures even when
+the failure has a newer timestamp. It exposes `critical`, `high`, and `normal`
+priority bands, stable signals, and deterministic
+recency/repository/kind/ID ordering instead of a consumer-facing opaque score.
+Failed runs and failed jobs are distinct items.
 
 The HTTP limit view balances three categories—jobs/workflows, open pull
 requests, and open issues—using equal rounds, redistributing missing category

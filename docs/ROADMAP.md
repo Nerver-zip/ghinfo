@@ -265,6 +265,7 @@ Delivered as an additive extension to `/v1/activity`:
 - temporal aging of workflow failures and expiry from the bounded projection;
 - balanced jobs/workflows, pull requests, and issues selection for `limit`;
 - additive running-workflow items and explicit age signals;
+- active workflows and jobs take precedence over failed activity;
 - retained workflow history remains available through `/v1/runs`.
 
 The projection also supports additive category views for consumers that need
@@ -290,7 +291,8 @@ is recorded in [ADR-0005](adr/0005-recent-closed-pull-request-fallback.md).
 `firstSeenAt`, event history, and persistence remain deferred. The original
 projection decision is recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md);
 the temporal and diversity rules are recorded in
-[ADR-0002](adr/0002-temporal-diversified-activity.md).
+[ADR-0002](adr/0002-temporal-diversified-activity.md). Active-work priority is
+defined in [ADR-0006](adr/0006-active-work-priority.md).
 
 ## Post-MVP candidates
 

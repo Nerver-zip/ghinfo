@@ -60,20 +60,20 @@ TEST(ActivityTest, ClassifiesItemsAndOrdersByPriorityThenRecency) {
     const auto items = ghinfo::build_activity_items(snapshot);
 
     ASSERT_EQ(items.size(), 5U);
-    EXPECT_EQ(items[0].kind, ghinfo::ActivityKind::failed_run);
+    EXPECT_EQ(items[0].kind, ghinfo::ActivityKind::running_job);
     EXPECT_EQ(items[0].priority, ghinfo::ActivityPriority::critical);
-    const std::vector<std::string> recent_run_signals{"failed_run", "recent_failure"};
-    EXPECT_EQ(items[0].signals, recent_run_signals);
-    EXPECT_EQ(items[0].name, std::optional<std::string>{"CI"});
-    EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::failed_job);
-    EXPECT_EQ(items[1].priority, ghinfo::ActivityPriority::critical);
-    EXPECT_EQ(items[1].run_id, std::optional<ghinfo::GithubId>{3001});
-    EXPECT_EQ(items[2].kind, ghinfo::ActivityKind::pull_request);
+    EXPECT_EQ(items[0].name, std::optional<std::string>{"clang-check"});
+    EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::pull_request);
+    EXPECT_EQ(items[1].priority, ghinfo::ActivityPriority::high);
+    EXPECT_EQ(items[1].title, std::optional<std::string>{"Example pull request"});
+    EXPECT_EQ(items[2].kind, ghinfo::ActivityKind::failed_run);
     EXPECT_EQ(items[2].priority, ghinfo::ActivityPriority::high);
-    EXPECT_EQ(items[2].title, std::optional<std::string>{"Example pull request"});
-    EXPECT_EQ(items[3].kind, ghinfo::ActivityKind::running_job);
+    const std::vector<std::string> recent_run_signals{"failed_run", "recent_failure"};
+    EXPECT_EQ(items[2].signals, recent_run_signals);
+    EXPECT_EQ(items[2].name, std::optional<std::string>{"CI"});
+    EXPECT_EQ(items[3].kind, ghinfo::ActivityKind::failed_job);
     EXPECT_EQ(items[3].priority, ghinfo::ActivityPriority::high);
-    EXPECT_EQ(items[3].name, std::optional<std::string>{"clang-check"});
+    EXPECT_EQ(items[3].run_id, std::optional<ghinfo::GithubId>{3001});
     EXPECT_EQ(items[4].kind, ghinfo::ActivityKind::issue);
     EXPECT_EQ(items[4].priority, ghinfo::ActivityPriority::normal);
     EXPECT_EQ(items[4].title, std::optional<std::string>{"Example issue"});
@@ -149,7 +149,7 @@ TEST(ActivityTest, AgesFailuresAndExpiresThemUsingSnapshotTime) {
     const auto recent_run =
         std::find_if(items.begin(), items.end(), [](const auto& item) { return item.id == 3001U; });
     ASSERT_NE(recent_run, items.end());
-    EXPECT_EQ(recent_run->priority, ghinfo::ActivityPriority::critical);
+    EXPECT_EQ(recent_run->priority, ghinfo::ActivityPriority::high);
     const std::vector<std::string> recent_run_signals{"failed_run", "recent_failure"};
     EXPECT_EQ(recent_run->signals, recent_run_signals);
 
@@ -189,7 +189,28 @@ TEST(ActivityTest, KeepsRunningWorkflowsAndJobsRelevant) {
     ASSERT_EQ(items.size(), 2U);
     EXPECT_EQ(items[0].kind, ghinfo::ActivityKind::running_run);
     EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::running_job);
-    EXPECT_EQ(items[0].priority, ghinfo::ActivityPriority::high);
+    EXPECT_EQ(items[0].priority, ghinfo::ActivityPriority::critical);
+    EXPECT_EQ(items[1].priority, ghinfo::ActivityPriority::critical);
+}
+
+TEST(ActivityTest, RanksActiveWorkAboveNewerFailures) {
+    ghinfo::Snapshot snapshot;
+    snapshot.generated_at = "2026-08-30T12:00:00Z";
+    snapshot.workflow_runs = {
+        ghinfo::WorkflowRun{3001, "owner/repo", "active", ghinfo::RunStatus::in_progress,
+                            std::nullopt, "main", "sha-active", "push", "2026-08-30T10:00:00Z",
+                            "2026-08-30T10:30:00Z", "active-run"},
+        ghinfo::WorkflowRun{3002, "owner/repo", "failed", ghinfo::RunStatus::completed,
+                            ghinfo::Conclusion::failure, "main", "sha-failed", "push",
+                            "2026-08-30T11:00:00Z", "2026-08-30T11:30:00Z", "failed-run"},
+    };
+
+    const auto items = ghinfo::build_activity_items(snapshot);
+
+    ASSERT_EQ(items.size(), 2U);
+    EXPECT_EQ(items[0].kind, ghinfo::ActivityKind::running_run);
+    EXPECT_EQ(items[0].priority, ghinfo::ActivityPriority::critical);
+    EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::failed_run);
     EXPECT_EQ(items[1].priority, ghinfo::ActivityPriority::high);
 }
 

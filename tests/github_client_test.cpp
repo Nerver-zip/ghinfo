@@ -70,7 +70,7 @@ TEST(GitHubClientTest, RejectsEmptyToken) {
 TEST(GitHubClientTest, DefinesPinnedTransportIdentity) {
     EXPECT_EQ(ghinfo::GitHubClient::api_base, "https://api.github.com");
     EXPECT_EQ(ghinfo::GitHubClient::api_version, "2026-03-10");
-    EXPECT_EQ(ghinfo::GitHubClient::user_agent, "ghinfo/0.1.0");
+    EXPECT_EQ(ghinfo::GitHubClient::user_agent, "ghinfo/0.3.0");
 }
 
 TEST(GitHubClientTest, SendsAuthenticatedRequestAndCapturesResponse) {
@@ -79,7 +79,7 @@ TEST(GitHubClientTest, SendsAuthenticatedRequestAndCapturesResponse) {
         if (request.get_header_value("Authorization") != "Bearer test-token" ||
             request.get_header_value("Accept") != "application/vnd.github+json" ||
             request.get_header_value("X-GitHub-Api-Version") != "2026-03-10" ||
-            request.get_header_value("User-Agent") != "ghinfo/0.1.0") {
+            request.get_header_value("User-Agent") != "ghinfo/0.3.0") {
             response.status = 400;
             return;
         }

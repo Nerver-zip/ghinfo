@@ -1,15 +1,14 @@
 [
   {
-    "kind": "failed_run",
+    "kind": "running_run",
     "priority": "critical",
-    "signals": ["failed_run", "recent_failure"],
-    "repository": "owner/repo",
-    "id": 3001,
-    "updatedAt": "2026-08-26T12:03:00Z",
-    "url": "https://github.com/owner/repo/actions/runs/3001",
-    "name": "CI",
-    "status": "completed",
-    "conclusion": "failure"
+    "signals": ["running_run"],
+    "repository": "other/repo",
+    "id": 3002,
+    "updatedAt": "2026-08-26T12:10:00Z",
+    "url": "https://github.com/other/repo/actions/runs/3002",
+    "name": "Checks",
+    "status": "queued"
   },
   {
     "kind": "pull_request",
@@ -23,19 +22,20 @@
     "title": "Example pull request"
   },
   {
-    "kind": "running_run",
+    "kind": "failed_run",
     "priority": "high",
-    "signals": ["running_run"],
-    "repository": "other/repo",
-    "id": 3002,
-    "updatedAt": "2026-08-26T12:10:00Z",
-    "url": "https://github.com/other/repo/actions/runs/3002",
-    "name": "Checks",
-    "status": "queued"
+    "signals": ["failed_run", "recent_failure"],
+    "repository": "owner/repo",
+    "id": 3001,
+    "updatedAt": "2026-08-26T12:03:00Z",
+    "url": "https://github.com/owner/repo/actions/runs/3001",
+    "name": "CI",
+    "status": "completed",
+    "conclusion": "failure"
   },
   {
     "kind": "failed_job",
-    "priority": "critical",
+    "priority": "high",
     "signals": ["failed_job", "recent_failure"],
     "repository": "owner/repo",
     "id": 4001,

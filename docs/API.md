@@ -66,7 +66,7 @@ Example:
 {
   "schemaVersion": 1,
   "service": "ghinfo",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "snapshotAvailable": true,
   "generation": 7,
   "generatedAt": "2026-08-26T20:45:31Z",
@@ -242,13 +242,13 @@ returns `400` with `invalid_category`.
 Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
 `updatedAt`, and `url`. The item kinds are:
 
-- `failed_job`: failed workflow job, `critical` priority, with `runId`, `name`,
-  `status`, and `conclusion`;
-- `failed_run`: failed workflow run, `critical` priority, with `name`, `status`,
-  and `conclusion`;
-- `running_job`: queued or in-progress job, `high` priority, with `runId`,
+- `failed_job`: failed workflow job, `high` priority when recent and `normal`
+  when stale, with `runId`, `name`, `status`, and `conclusion`;
+- `failed_run`: failed workflow run, `high` priority when recent and `normal`
+  when stale, with `name`, `status`, and `conclusion`;
+- `running_job`: queued or in-progress job, `critical` priority, with `runId`,
   `name`, and `status`;
-- `running_run`: queued or in-progress workflow run, `high` priority, with
+- `running_run`: queued or in-progress workflow run, `critical` priority, with
   `name` and `status`;
 - `pull_request`: an open pull request (`high` priority) or a recent closed
   pull request fallback (`normal` priority), with `number` and `title`;
@@ -263,17 +263,21 @@ and are omitted when any open pull request exists. The grouped
 summary counts continue to represent open pull requests only.
 
 Failed workflow runs and jobs use a temporal policy relative to the snapshot's
-`generatedAt`. A failure updated within the previous 7 days remains
-`critical` and receives the `recent_failure` signal. A failure older than 7
-and at most 30 days becomes `normal` and receives `stale_failure`. A failure
-older than 30 days is omitted from `activity.items`. A future-dated upstream
-timestamp is treated as current. If a failure timestamp cannot be evaluated,
-the failure is retained at its base urgency without an age signal; normalized
-GitHub payloads are expected to contain valid UTC timestamps.
+`generatedAt`. A failure updated within the previous 7 days is `high` and
+receives the `recent_failure` signal. A failure older than 7 and at most 30
+days becomes `normal` and receives `stale_failure`. A failure older than 30
+days is omitted from `activity.items`. A future-dated upstream timestamp is
+treated as current. If a failure timestamp cannot be evaluated, the failure
+is retained at its base urgency without an age signal; normalized GitHub
+payloads are expected to contain valid UTC timestamps.
 
-Running jobs and workflow runs remain relevant regardless of age. Open pull
-requests and issues remain available with their current `high` and `normal`
-priorities.
+Running jobs and workflow runs are `critical` regardless of age, so active
+work always sorts ahead of failures. Open pull requests and issues remain
+available with their current `high` and `normal` priorities. The resulting
+priority order is `critical` active work, `high` recent failures and open pull
+requests, then `normal` stale failures, closed pull-request fallbacks, and
+issues. This priority is an explicit urgency classification; recency still
+orders items within a priority band.
 
 The complete eligible item set is ordered by priority band, effective
 timestamp descending, repository ascending, kind ascending, and stable

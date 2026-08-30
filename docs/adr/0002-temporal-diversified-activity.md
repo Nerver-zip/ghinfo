@@ -4,6 +4,9 @@
 - Date: 2026-08-28
 - Scope: additive `/v1/activity` projection behavior
 
+The temporal eligibility policy remains in force. Its priority-band mapping
+for active work and failures is superseded by [ADR-0006](0006-active-work-priority.md).
+
 ## Context
 
 The initial prioritized projection gave every failed run and failed job the

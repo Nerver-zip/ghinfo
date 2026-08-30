@@ -288,16 +288,16 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
 
     for (const auto& job : snapshot.jobs) {
         if (is_active(job)) {
-            auto item = base_item(ActivityKind::running_job, ActivityPriority::high, "running_job",
-                                  job.repository, job.id, job_timestamp(job), job.url);
+            auto item =
+                base_item(ActivityKind::running_job, ActivityPriority::critical, "running_job",
+                          job.repository, job.id, job_timestamp(job), job.url);
             item.run_id = job.run_id;
             item.name = job.name;
             item.status = job.status;
             items.push_back(std::move(item));
         } else if (job.conclusion == Conclusion::failure) {
-            auto item =
-                base_item(ActivityKind::failed_job, ActivityPriority::critical, "failed_job",
-                          job.repository, job.id, job_timestamp(job), job.url);
+            auto item = base_item(ActivityKind::failed_job, ActivityPriority::high, "failed_job",
+                                  job.repository, job.id, job_timestamp(job), job.url);
             const auto failure_age = classify_failure_age(item.updated_at, snapshot.generated_at);
             if (failure_age == FailureAge::expired) {
                 continue;
@@ -318,15 +318,15 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
 
     for (const auto& run : snapshot.workflow_runs) {
         if (is_active(run)) {
-            auto item = base_item(ActivityKind::running_run, ActivityPriority::high, "running_run",
-                                  run.repository, run.id, run.updated_at, run.url);
+            auto item = base_item(ActivityKind::running_run, ActivityPriority::critical,
+                                  "running_run", run.repository, run.id, run.updated_at, run.url);
             item.name = run.name;
             item.status = run.status;
             item.conclusion = run.conclusion;
             items.push_back(std::move(item));
         } else if (run.conclusion == Conclusion::failure) {
-            auto item = base_item(ActivityKind::failed_run, ActivityPriority::critical,
-                                  "failed_run", run.repository, run.id, run.updated_at, run.url);
+            auto item = base_item(ActivityKind::failed_run, ActivityPriority::high, "failed_run",
+                                  run.repository, run.id, run.updated_at, run.url);
             const auto failure_age = classify_failure_age(item.updated_at, snapshot.generated_at);
             if (failure_age == FailureAge::expired) {
                 continue;

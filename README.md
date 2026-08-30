@@ -120,16 +120,16 @@ The runtime image runs as the unprivileged `ghinfo` user. See
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|---|:---:|---:|---|
-| `GHINFO_GITHUB_TOKEN` | yes | — | Fine-grained GitHub PAT |
-| `GHINFO_REPOSITORIES` | yes | — | `auto` or comma-separated `owner/repo` values |
-| `GHINFO_POLL_INTERVAL_SECONDS` | no | `60` | Base polling interval |
-| `GHINFO_BIND` | no | `127.0.0.1` | HTTP bind address |
-| `GHINFO_PORT` | no | `8080` | HTTP port |
-| `GHINFO_LOG_LEVEL` | no | `info` | `trace`, `debug`, `info`, `warn`, or `error` |
-| `GHINFO_RUN_HISTORY` | no | `20` | Recent workflow runs retained per repository |
-| `GHINFO_JOB_RUN_HISTORY` | no | `10` | Recent workflow runs whose jobs are expanded |
+| Variable                       | Required | Default     | Description                                   |
+| ------------------------------ |:--------:| -----------:| --------------------------------------------- |
+| `GHINFO_GITHUB_TOKEN`          | yes      | —           | Fine-grained GitHub PAT                       |
+| `GHINFO_REPOSITORIES`          | yes      | —           | `auto` or comma-separated `owner/repo` values |
+| `GHINFO_POLL_INTERVAL_SECONDS` | no       | `60`        | Base polling interval                         |
+| `GHINFO_BIND`                  | no       | `127.0.0.1` | HTTP bind address                             |
+| `GHINFO_PORT`                  | no       | `8080`      | HTTP port                                     |
+| `GHINFO_LOG_LEVEL`             | no       | `info`      | `trace`, `debug`, `info`, `warn`, or `error`  |
+| `GHINFO_RUN_HISTORY`           | no       | `20`        | Recent workflow runs retained per repository  |
+| `GHINFO_JOB_RUN_HISTORY`       | no       | `10`        | Recent workflow runs whose jobs are expanded  |
 
 With `GHINFO_REPOSITORIES=auto`, repositories accessible to the authenticated
 user are discovered and refreshed on every polling cycle.
@@ -152,19 +152,19 @@ the repository, or a client request. `.env` is ignored by Git.
 All data endpoints return normalized JSON and respond with
 `503 snapshot_unavailable` until the first complete poll succeeds.
 
-| Endpoint | Purpose |
-|---|---|
-| `GET /healthz` | Process health check |
-| `GET /readyz` | Snapshot readiness check |
-| `GET /v1/meta` | Schema, generation, polling, and rate-limit state |
-| `GET /v1/summary` | Repository, issue, pull-request, and Actions counts |
-| `GET /v1/repos` | Repositories in the current snapshot |
-| `GET /v1/repos/{owner}/{repo}` | One repository and its normalized resources |
-| `GET /v1/issues` | Open issues; supports `?repo=owner/name` |
-| `GET /v1/pulls` | Open pull requests; supports `?repo=owner/name` |
-| `GET /v1/runs` | Retained workflow runs and status filters |
-| `GET /v1/jobs` | Jobs in the bounded expansion window |
-| `GET /v1/activity` | Prioritized, diversified activity projection |
+| Endpoint                       | Purpose                                             |
+| ------------------------------ | --------------------------------------------------- |
+| `GET /healthz`                 | Process health check                                |
+| `GET /readyz`                  | Snapshot readiness check                            |
+| `GET /v1/meta`                 | Schema, generation, polling, and rate-limit state   |
+| `GET /v1/summary`              | Repository, issue, pull-request, and Actions counts |
+| `GET /v1/repos`                | Repositories in the current snapshot                |
+| `GET /v1/repos/{owner}/{repo}` | One repository and its normalized resources         |
+| `GET /v1/issues`               | Open issues; supports `?repo=owner/name`            |
+| `GET /v1/pulls`                | Open pull requests; supports `?repo=owner/name`     |
+| `GET /v1/runs`                 | Retained workflow runs and status filters           |
+| `GET /v1/jobs`                 | Jobs in the bounded expansion window                |
+| `GET /v1/activity`             | Prioritized, diversified activity projection        |
 
 ### Activity views
 
@@ -185,6 +185,8 @@ GET /v1/activity?category=issues&limit=3
 The default limit is `20`, and the maximum is `100`. Items include explicit
 priority and signal fields, titles for issues and pull requests, names for
 workflows and jobs, UTC timestamps, stable IDs, and URLs.
+Currently running workflows and jobs take precedence over failed activity in
+the default ordering.
 
 When there are no open pull requests, the activity view may include a bounded
 fallback of recently updated closed pull requests. The `/v1/pulls` endpoint,
