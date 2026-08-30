@@ -30,6 +30,9 @@ than a notification queue. Consumers can request a bounded ordered view with
 `GET /v1/activity?limit=N`; the existing grouped activity fields remain
 available for compatibility. Independent category views are available through
 `category=workflows`, `category=pull_requests`, and `category=issues`.
+When no open pull request exists, the activity projection may include a
+bounded fallback of recently updated closed pull requests; the open-only
+resource and grouped contracts remain unchanged.
 
 ## Planned architecture
 

@@ -15,6 +15,8 @@ namespace ghinfo {
 
 namespace {
 
+constexpr std::size_t kClosedPullRequestFallbackLimit = 3;
+
 [[nodiscard]] bool is_active(const WorkflowRun& run) {
     return run.status == RunStatus::queued || run.status == RunStatus::in_progress;
 }
@@ -74,6 +76,17 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
         snapshot.workflow_runs.insert(snapshot.workflow_runs.end(),
                                       std::make_move_iterator(workflow_runs.begin()),
                                       std::make_move_iterator(workflow_runs.end()));
+    }
+
+    if (snapshot.pull_requests.empty()) {
+        for (const auto& repository_ref : repositories) {
+            auto closed_pull_requests = github.fetch_recent_closed_pull_requests(
+                repository_ref, kClosedPullRequestFallbackLimit);
+            snapshot.recent_closed_pull_requests.insert(
+                snapshot.recent_closed_pull_requests.end(),
+                std::make_move_iterator(closed_pull_requests.begin()),
+                std::make_move_iterator(closed_pull_requests.end()));
+        }
     }
 
     std::sort(snapshot.repositories.begin(), snapshot.repositories.end(),

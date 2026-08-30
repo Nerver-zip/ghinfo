@@ -283,7 +283,8 @@ std::optional<ActivityCategory> parse_activity_category(std::string_view value) 
 std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
     std::vector<ActivityItem> items;
     items.reserve(snapshot.jobs.size() + snapshot.workflow_runs.size() +
-                  snapshot.pull_requests.size() + snapshot.issues.size());
+                  snapshot.pull_requests.size() + snapshot.recent_closed_pull_requests.size() +
+                  snapshot.issues.size());
 
     for (const auto& job : snapshot.jobs) {
         if (is_active(job)) {
@@ -347,6 +348,15 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
         auto item = base_item(ActivityKind::pull_request, ActivityPriority::high,
                               "open_pull_request", pull_request.repository, pull_request.id,
                               pull_request.updated_at, pull_request.url);
+        item.number = pull_request.number;
+        item.title = pull_request.title;
+        items.push_back(std::move(item));
+    }
+
+    for (const auto& pull_request : snapshot.recent_closed_pull_requests) {
+        auto item = base_item(ActivityKind::pull_request, ActivityPriority::normal,
+                              "recent_closed_pull_request", pull_request.repository,
+                              pull_request.id, pull_request.updated_at, pull_request.url);
         item.number = pull_request.number;
         item.title = pull_request.title;
         items.push_back(std::move(item));

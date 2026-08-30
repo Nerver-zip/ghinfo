@@ -18,6 +18,7 @@ struct Snapshot {
     std::vector<Repository> repositories;
     std::vector<Issue> issues;
     std::vector<PullRequest> pull_requests;
+    std::vector<PullRequest> recent_closed_pull_requests;
     std::vector<WorkflowRun> workflow_runs;
     std::vector<WorkflowJob> jobs;
     std::vector<ActivityItem> activity_items;

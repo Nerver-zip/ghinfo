@@ -32,7 +32,7 @@ synchronization.
 
 The Docker image and remote workflow/release state remain external evidence.
 The local environment has no active Docker daemon, so the current activity
-implementation was validated through dev and ASan/UBSan builds, 55 deterministic
+implementation was validated through dev and ASan/UBSan builds, 65 deterministic
 tests, format checks, and Gitleaks.
 
 ## Completed post-MVP milestone
@@ -69,3 +69,12 @@ The job-detail collection is bounded independently from workflow-run history.
 runs plus active runs per repository. This allows recent failed jobs inside a
 successful workflow to reach `/v1/activity` without querying all retained
 history. See [ADR-0003](../docs/adr/0003-bounded-job-expansion.md).
+
+## Completed recent closed pull-request fallback
+
+When a complete snapshot has no open pull requests, the collector requests up
+to 3 recently updated closed pull requests per repository. They are retained
+separately and exposed only as normal-priority `pull_request` activity items
+with the `recent_closed_pull_request` signal. Open-only resource and grouped
+activity contracts remain unchanged. See
+[ADR-0005](../docs/adr/0005-recent-closed-pull-request-fallback.md).

@@ -727,6 +727,33 @@ GitHubClient::fetch_open_pull_requests(const RepositoryRef& repository) const {
                              "GitHub pull requests pagination exceeded the safety limit");
 }
 
+std::vector<PullRequest>
+GitHubClient::fetch_recent_closed_pull_requests(const RepositoryRef& repository,
+                                                std::size_t limit) const {
+    if (limit == 0 || limit > 100) {
+        throw std::invalid_argument("closed pull request fallback limit must be between 1 and 100");
+    }
+
+    const auto path =
+        "/repos/" + repository.full_name() +
+        "/pulls?state=closed&sort=updated&direction=desc&per_page=" + std::to_string(limit) +
+        "&page=1";
+    const auto response = get(path);
+    const auto payload = parse_json(response.body);
+
+    try {
+        auto pull_requests = parse_pull_request_page(payload, repository);
+        if (pull_requests.size() > limit) {
+            pull_requests.resize(limit);
+        }
+        return pull_requests;
+    } catch (const PayloadShapeError& error) {
+        throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                 "GitHub closed pull requests payload has invalid shape: " +
+                                     std::string{error.what()});
+    }
+}
+
 std::vector<WorkflowRun> GitHubClient::fetch_workflow_runs(const RepositoryRef& repository,
                                                            std::uint32_t history_limit) const {
     if (history_limit == 0 || history_limit > 100) {

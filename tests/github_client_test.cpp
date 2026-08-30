@@ -570,6 +570,45 @@ TEST(GitHubClientTest, FetchesAndNormalizesPaginatedOpenPullRequests) {
     EXPECT_EQ(pull_requests.front().url, "https://github.com/owner/repo/pull/17");
 }
 
+TEST(GitHubClientTest, FetchesRecentClosedPullRequestsWithBoundedUpdatedOrdering) {
+    LocalHttpServer server;
+    const auto closed_pull_requests = read_fixture("tests/fixtures/github/closed_pulls.json");
+    server.server().Get("/repos/owner/repo/pulls",
+                        [&](const httplib::Request& request, httplib::Response& response) {
+                            EXPECT_EQ(request.get_param_value("state"), "closed");
+                            EXPECT_EQ(request.get_param_value("sort"), "updated");
+                            EXPECT_EQ(request.get_param_value("direction"), "desc");
+                            EXPECT_EQ(request.get_param_value("per_page"), "3");
+                            EXPECT_EQ(request.get_param_value("page"), "1");
+                            response.set_content(closed_pull_requests, "application/json");
+                        });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto pull_requests =
+        client.fetch_recent_closed_pull_requests(ghinfo::parse_repository_ref("owner/repo"), 3);
+
+    ASSERT_EQ(pull_requests.size(), 2U);
+    EXPECT_EQ(pull_requests[0].id, 2002U);
+    EXPECT_EQ(pull_requests[0].title, "Most recent closed pull request");
+    EXPECT_EQ(pull_requests[1].id, 2003U);
+    EXPECT_EQ(pull_requests[1].title, "Older closed pull request");
+}
+
+TEST(GitHubClientTest, RejectsInvalidClosedPullRequestFallbackLimit) {
+    ghinfo::GitHubClient client{"test-token"};
+
+    EXPECT_THROW((void)client.fetch_recent_closed_pull_requests(
+                     ghinfo::parse_repository_ref("owner/repo"), 0),
+                 std::invalid_argument);
+    EXPECT_THROW((void)client.fetch_recent_closed_pull_requests(
+                     ghinfo::parse_repository_ref("owner/repo"), 101),
+                 std::invalid_argument);
+}
+
 TEST(GitHubClientTest, FetchesBoundedWorkflowRunHistory) {
     LocalHttpServer server;
     const auto fixture = read_fixture("tests/fixtures/github/runs.json");

@@ -280,6 +280,13 @@ regardless of the parent workflow conclusion so recent individual failures are
 not hidden. The decision is recorded in
 [ADR-0003](adr/0003-bounded-job-expansion.md).
 
+When no open pull request exists in a complete snapshot, the activity
+projection also includes up to 3 recently updated closed pull requests per
+repository. This fallback is activity-only, uses normal priority and the
+`recent_closed_pull_request` signal, and does not change the open-only
+`/v1/pulls`, grouped activity, repository, or summary contracts. The decision
+is recorded in [ADR-0005](adr/0005-recent-closed-pull-request-fallback.md).
+
 `firstSeenAt`, event history, and persistence remain deferred. The original
 projection decision is recorded in [ADR-0001](adr/0001-prioritized-activity-projection.md);
 the temporal and diversity rules are recorded in

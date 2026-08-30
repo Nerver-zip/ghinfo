@@ -134,6 +134,15 @@ is deterministically deferred beyond the protected top three. “New since last
 observation” is deferred until first-seen state has an explicit
 lifetime/persistence policy.
 
+When a complete snapshot has no open pull requests, the collector performs a
+bounded fallback collection of up to 3 recently updated closed pull requests
+per repository. These records are stored separately and contribute only to
+`Snapshot::activity_items` with normal priority and the
+`recent_closed_pull_request` signal. The `/v1/pulls` resource, grouped
+`activity.pullRequests` field, repository resource, and summary continue to
+describe open pull requests only. Any open pull request suppresses the closed
+fallback for that snapshot.
+
 The projection is built once for each complete candidate snapshot and stored in
 `Snapshot::activity_items`. An HTTP request validates `limit` and the optional
 activity category, performs the deterministic in-memory selection, and copies
@@ -164,6 +173,8 @@ MVP intent:
 
 - all open issues for each configured or discovered repository;
 - all open pull requests;
+- up to 3 recently updated closed pull requests per repository only when the
+  complete snapshot has no open pull requests, for the activity fallback;
 - bounded recent workflow runs;
 - jobs for the configured recent workflow-run detail window, plus active runs
   outside that window.

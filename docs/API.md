@@ -140,7 +140,8 @@ Planned filter:
 
 ### `GET /v1/pulls`
 
-Open normalized pull requests.
+Open normalized pull requests. This endpoint contains only open pull requests;
+recent closed pull requests used by the activity fallback are not included.
 
 ### `GET /v1/runs`
 
@@ -249,9 +250,17 @@ Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
   `name`, and `status`;
 - `running_run`: queued or in-progress workflow run, `high` priority, with
   `name` and `status`;
-- `pull_request`: open pull request, `high` priority, with `number` and
-  `title`;
+- `pull_request`: an open pull request (`high` priority) or a recent closed
+  pull request fallback (`normal` priority), with `number` and `title`;
 - `issue`: open issue, `normal` priority, with `number` and `title`.
+
+If the complete snapshot contains no open pull requests, the collector makes a
+bounded fallback request for up to 3 closed pull requests per repository,
+ordered by GitHub's `updated` timestamp descending. These items are exposed
+only through `activity.items`, carry the `recent_closed_pull_request` signal,
+and are omitted when any open pull request exists. The grouped
+`activity.pullRequests` field, `/v1/pulls`, repository pull-request arrays, and
+summary counts continue to represent open pull requests only.
 
 Failed workflow runs and jobs use a temporal policy relative to the snapshot's
 `generatedAt`. A failure updated within the previous 7 days remains

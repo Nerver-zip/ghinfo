@@ -4,6 +4,7 @@
 
 #include <gtest/gtest.h>
 
+#include <algorithm>
 #include <chrono>
 #include <fstream>
 #include <iterator>
@@ -60,8 +61,11 @@ class LocalHttpServer {
     int port_{};
 };
 
-void register_repository(httplib::Server& server, const std::string& full_name, bool healthy = true,
-                         std::string runs = read_fixture("tests/fixtures/github/runs.json")) {
+void register_repository(
+    httplib::Server& server, const std::string& full_name, bool healthy = true,
+    std::string runs = read_fixture("tests/fixtures/github/runs.json"),
+    std::string pull_requests = read_fixture("tests/fixtures/github/pulls.json"),
+    std::string closed_pull_requests = "[]") {
     const auto repository_body = std::string{"{\"id\":"} +
                                  (full_name == "a/repo" ? "1001" : "1002") + ",\"full_name\":\"" +
                                  full_name +
@@ -69,7 +73,6 @@ void register_repository(httplib::Server& server, const std::string& full_name, 
                                  "\"html_url\":\"https://github.com/" +
                                  full_name + "\",\"updated_at\":\"2026-08-26T13:00:00Z\"}";
     const auto issues = read_fixture("tests/fixtures/github/issues.json");
-    const auto pull_requests = read_fixture("tests/fixtures/github/pulls.json");
     const auto jobs = read_fixture("tests/fixtures/github/jobs.json");
     const auto add_rate_headers = [](httplib::Response& response) {
         response.set_header("X-RateLimit-Limit", "5000");
@@ -97,14 +100,17 @@ void register_repository(httplib::Server& server, const std::string& full_name, 
             response.set_content(issues, "application/json");
         });
     server.Get("/repos/" + full_name + "/pulls",
-               [pull_requests, add_rate_headers, healthy](const httplib::Request&,
-                                                          httplib::Response& response) {
+               [pull_requests, closed_pull_requests, add_rate_headers,
+                healthy](const httplib::Request& request, httplib::Response& response) {
                    if (!healthy) {
                        response.status = 503;
                        return;
                    }
                    add_rate_headers(response);
-                   response.set_content(pull_requests, "application/json");
+                   response.set_content(request.get_param_value("state") == "closed"
+                                            ? closed_pull_requests
+                                            : pull_requests,
+                                        "application/json");
                });
     server.Get(
         "/repos/" + full_name + "/actions/runs",
@@ -171,6 +177,36 @@ TEST(SnapshotBuilderTest, BuildsCompleteDeterministicSnapshot) {
     EXPECT_EQ(snapshot.rate_limit->remaining, 4999U);
     ASSERT_TRUE(snapshot.rate_limit->reset_at.has_value());
     EXPECT_EQ(snapshot.rate_limit->reset_at.value(), "1970-01-01T00:00:00Z");
+}
+
+TEST(SnapshotBuilderTest, UsesRecentClosedPullRequestsOnlyWhenNoOpenPullRequestsExist) {
+    LocalHttpServer server;
+    const auto closed_pull_requests = read_fixture("tests/fixtures/github/closed_pulls.json");
+    register_repository(server.server(), "a/repo", true,
+                        read_fixture("tests/fixtures/github/runs.json"), "[]",
+                        closed_pull_requests);
+
+    ghinfo::Config config;
+    config.repositories = {ghinfo::parse_repository_ref("a/repo")};
+    config.run_history = 20;
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto snapshot = ghinfo::build_snapshot(config, client, 8, "2026-08-26T18:00:00Z");
+
+    EXPECT_TRUE(snapshot.pull_requests.empty());
+    ASSERT_EQ(snapshot.recent_closed_pull_requests.size(), 2U);
+    EXPECT_EQ(snapshot.recent_closed_pull_requests[0].id, 2002U);
+    EXPECT_EQ(snapshot.recent_closed_pull_requests[1].id, 2003U);
+    const auto closed_activity =
+        std::find_if(snapshot.activity_items.begin(), snapshot.activity_items.end(),
+                     [](const auto& item) { return item.id == 2002U; });
+    ASSERT_NE(closed_activity, snapshot.activity_items.end());
+    EXPECT_EQ(closed_activity->priority, ghinfo::ActivityPriority::normal);
+    ASSERT_EQ(closed_activity->signals.size(), 1U);
+    EXPECT_EQ(closed_activity->signals.front(), "recent_closed_pull_request");
 }
 
 TEST(SnapshotBuilderTest, ExpandsOnlyRecentRunsAndKeepsActiveRunsOutsideWindow) {

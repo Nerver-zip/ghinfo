@@ -60,6 +60,8 @@ class GitHubClient {
     [[nodiscard]] std::vector<Issue> fetch_open_issues(const RepositoryRef& repository) const;
     [[nodiscard]] std::vector<PullRequest>
     fetch_open_pull_requests(const RepositoryRef& repository) const;
+    [[nodiscard]] std::vector<PullRequest>
+    fetch_recent_closed_pull_requests(const RepositoryRef& repository, std::size_t limit) const;
     [[nodiscard]] std::vector<WorkflowRun> fetch_workflow_runs(const RepositoryRef& repository,
                                                                std::uint32_t history_limit) const;
     [[nodiscard]] std::vector<WorkflowJob> fetch_workflow_jobs(const RepositoryRef& repository,

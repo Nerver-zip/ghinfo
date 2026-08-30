@@ -302,6 +302,35 @@ TEST(ApiTest, ActivityCategoryFiltersItemsWithoutChangingGroupedData) {
     EXPECT_EQ(issues.at("activity").at("failedRuns").size(), 1U);
 }
 
+TEST(ApiTest, ClosedPullRequestFallbackStaysOnlyInPrioritizedActivity) {
+    auto snapshot = sample_snapshot();
+    snapshot->pull_requests.clear();
+    snapshot->recent_closed_pull_requests = {
+        ghinfo::PullRequest{2002, 18, "owner/repo", "Recently closed pull request", "octocat",
+                            false, "feature/closed", "main", "2026-08-25T12:00:00Z",
+                            "2026-08-26T12:30:00Z", "https://github.com/owner/repo/pull/18"},
+    };
+    snapshot->activity_items = ghinfo::build_activity_items(*snapshot);
+
+    ghinfo::SnapshotStore store;
+    store.publish(snapshot);
+    store.record_poll_success(snapshot->generated_at);
+
+    const auto activity = nlohmann::json::parse(
+        ghinfo::make_activity_response(store, 100, ghinfo::ActivityCategory::pull_requests).body);
+    ASSERT_EQ(activity.at("activity").at("items").size(), 1U);
+    EXPECT_EQ(activity.at("activity").at("items").at(0).at("title"),
+              "Recently closed pull request");
+    EXPECT_EQ(activity.at("activity").at("items").at(0).at("priority"), "normal");
+    EXPECT_EQ(activity.at("activity").at("items").at(0).at("signals").at(0),
+              "recent_closed_pull_request");
+    EXPECT_TRUE(activity.at("activity").at("pullRequests").empty());
+
+    const auto pulls =
+        nlohmann::json::parse(ghinfo::make_pull_requests_response(*snapshot, std::nullopt).body);
+    EXPECT_TRUE(pulls.at("pullRequests").empty());
+}
+
 TEST(ApiTest, KeepsExpiredFailuresInRunsButNotInActivityItems) {
     auto snapshot = sample_snapshot();
     snapshot->generated_at = "2026-08-28T00:00:00Z";
