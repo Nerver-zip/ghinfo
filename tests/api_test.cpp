@@ -480,6 +480,16 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     EXPECT_EQ(invalid_category->status, 400);
     EXPECT_EQ(nlohmann::json::parse(invalid_category->body).at("error"), "invalid_category");
 
+    const auto empty_category = client.Get("/v1/activity?category=");
+    ASSERT_TRUE(empty_category != nullptr);
+    EXPECT_EQ(empty_category->status, 400);
+    EXPECT_EQ(nlohmann::json::parse(empty_category->body).at("error"), "invalid_category");
+
+    const auto category_limit = client.Get("/v1/activity?category=issues&limit=1");
+    ASSERT_TRUE(category_limit != nullptr);
+    ASSERT_EQ(category_limit->status, 200);
+    EXPECT_EQ(nlohmann::json::parse(category_limit->body).at("activity").at("items").size(), 1U);
+
     for (const auto* value : {"0", "101", "-1", "invalid", "", "18446744073709551616"}) {
         const auto invalid_limit = client.Get(std::string{"/v1/activity?limit="} + value);
         ASSERT_TRUE(invalid_limit != nullptr);
