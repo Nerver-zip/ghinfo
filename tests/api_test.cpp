@@ -1,6 +1,7 @@
 #include "ghinfo/server.hpp"
 
 #include "ghinfo/activity.hpp"
+#include "ghinfo/poller.hpp"
 
 #include <httplib.h>
 
@@ -12,6 +13,7 @@
 #include <atomic>
 #include <chrono>
 #include <fstream>
+#include <future>
 #include <iterator>
 #include <memory>
 #include <optional>
@@ -119,6 +121,68 @@ struct ApiListenerGuard {
         }
     }
 };
+
+TEST(ApiTest, ServesLastSnapshotWhileUpstreamIsBlockedAndAfterFailure) {
+    std::promise<void> entered;
+    auto entered_future = entered.get_future();
+    std::promise<void> release;
+    auto release_future = release.get_future();
+    httplib::Server upstream;
+    upstream.Get("/repos/owner/repo", [&](const httplib::Request&, httplib::Response& response) {
+        entered.set_value();
+        release_future.wait_for(std::chrono::seconds{3});
+        response.status = 503;
+    });
+    const auto upstream_port = upstream.bind_to_any_port("127.0.0.1");
+    ASSERT_GT(upstream_port, 0);
+    std::jthread upstream_thread{[&](std::stop_token stop) {
+        std::stop_callback on_stop{stop, [&] { upstream.stop(); }};
+        upstream.listen_after_bind();
+    }};
+    ghinfo::Config config;
+    config.bind_address = "127.0.0.1";
+    config.port = static_cast<std::uint16_t>(available_port());
+    config.repositories = {ghinfo::parse_repository_ref("owner/repo")};
+    ghinfo::SnapshotStore store;
+    store.publish(sample_snapshot());
+    store.record_poll_success("2026-08-26T20:45:31Z");
+    ghinfo::ApiServer api{config, store};
+    std::thread listener{[&] { (void)api.listen(); }};
+    ApiListenerGuard guard{api, listener};
+    httplib::Client consumer{"127.0.0.1", config.port};
+    consumer.set_read_timeout(std::chrono::milliseconds{500});
+    for (int attempt = 0; attempt < 500; ++attempt) {
+        if (consumer.Get("/healthz")) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+    ghinfo::GitHubClient github{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = "http://127.0.0.1:" + std::to_string(upstream_port),
+                                    .total_timeout = std::chrono::milliseconds{2000}}};
+    ghinfo::Poller poller{config, github, store};
+    std::jthread worker{[&](std::stop_token stop) { poller.run(stop); }};
+    ASSERT_EQ(entered_future.wait_for(std::chrono::seconds{1}), std::future_status::ready);
+    const auto during = consumer.Get("/v1/activity?limit=3");
+    ASSERT_TRUE(during);
+    ASSERT_EQ(during->status, 200);
+    const auto before = nlohmann::json::parse(during->body);
+    EXPECT_EQ(before.at("generation"), 7);
+    EXPECT_FALSE(before.at("stale").get<bool>());
+    release.set_value();
+    for (int attempt = 0; attempt < 1000 && !store.poll_state().stale; ++attempt) {
+        std::this_thread::sleep_for(std::chrono::milliseconds{1});
+    }
+    ASSERT_TRUE(store.poll_state().stale);
+    const auto after = consumer.Get("/v1/activity?limit=3");
+    ASSERT_TRUE(after);
+    ASSERT_EQ(after->status, 200);
+    const auto stale = nlohmann::json::parse(after->body);
+    EXPECT_EQ(stale.at("generation"), 7);
+    EXPECT_EQ(stale.at("activity"), before.at("activity"));
+    EXPECT_TRUE(stale.at("stale").get<bool>());
+}
 
 TEST(ApiTest, HealthPayloadIsAlwaysOk) {
     const auto response = ghinfo::make_health_response();

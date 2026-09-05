@@ -1,5 +1,6 @@
 #include "ghinfo/github_client.hpp"
 
+#include <curl/curl.h>
 #include <httplib.h>
 
 #include <gtest/gtest.h>
@@ -124,6 +125,7 @@ TEST(GitHubClientTest, SeparatesHttpErrorsWithoutExposingTokenOrBody) {
         EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::http);
         ASSERT_TRUE(error.status_code().has_value());
         EXPECT_EQ(error.status_code().value(), 403);
+        EXPECT_FALSE(error.transport_code().has_value());
         EXPECT_EQ(std::string{error.what()}, "GitHub returned HTTP 403 for /forbidden");
         EXPECT_EQ(std::string{error.what()}.find(token), std::string::npos);
         EXPECT_EQ(std::string{error.what()}.find("upstream body"), std::string::npos);
@@ -147,6 +149,7 @@ TEST(GitHubClientTest, SeparatesTransportErrors) {
         EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::transport);
         EXPECT_FALSE(error.status_code().has_value());
         EXPECT_EQ(std::string{error.what()}.find("secret-test-token"), std::string::npos);
+        EXPECT_EQ(error.transport_code(), CURLE_COULDNT_CONNECT);
     }
 }
 
@@ -526,6 +529,7 @@ TEST(GitHubClientTest, MapsRequestTimeoutToTransportError) {
     } catch (const ghinfo::GitHubRequestError& error) {
         EXPECT_EQ(error.kind(), ghinfo::GitHubErrorKind::transport);
         EXPECT_FALSE(error.status_code().has_value());
+        EXPECT_EQ(error.transport_code(), CURLE_OPERATION_TIMEDOUT);
     }
 }
 

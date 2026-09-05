@@ -70,3 +70,39 @@ Run the Flow manually from its test/play control. If the global remains empty,
 verify that the WebGet URL is reachable from the Android device and that the
 next action is `Set Global` targeting `ghinfo`. If the action exposes
 a value field, use the previous action's `#last` result.
+
+## Slow responses and failed polls
+
+`poll failed (transport)` means a server-to-GitHub connection failed (for
+example DNS, connection, TLS, or timeout). `poll failed (http)` means GitHub
+returned an unsuccessful HTTP status. Neither log alone proves that the
+phone-to-server request is slow. Current logs include `curl_code` and a fixed
+libcurl reason, or `http_status`, plus the consecutive failure count and retry
+delay. Do not share tokens, environment contents, or raw authenticated traces.
+
+During failures, a running service continues serving the last complete
+snapshot with `stale: true`. If the service has restarted and no complete poll
+has succeeded, data endpoints return `503 snapshot_unavailable`. Restarting
+only the phone does not clear the server snapshot.
+
+Check these URLs using the same host as the widget, including from the phone:
+
+- `/healthz`: process reachability, independent of GitHub.
+- `/v1/meta`: `snapshotAvailable`, `generatedAt`, and `poll` failure/retry state.
+- `/v1/activity?limit=3`: the widget response and its `stale` flag.
+
+From a terminal on the same network, measure the actual request:
+
+```bash
+curl --max-time 5 -sS -o /dev/null \
+  -w 'HTTP %{http_code}; connect %{time_connect}s; total %{time_total}s\n' \
+  'http://<ghinfo-host>:8080/v1/activity?limit=3'
+```
+
+A quick stale `200` indicates failed refreshes, while a connection timeout
+requires checking the phone's Wi-Fi/VPN, host reachability, and port exposure.
+If the phone browser responds promptly but the widget does not, inspect the
+Flow execution and Android background/battery restrictions. Transport retry
+waits now reach at most 60 seconds; HTTP failures retain the longer backoff.
+New logs and retry behavior require rebuilding and restarting the deployment;
+the first complete poll must finish again after restart.

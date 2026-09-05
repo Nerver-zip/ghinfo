@@ -502,8 +502,13 @@ std::vector<RepositoryRef> parse_repository_list_payload(const Json& payload) {
 } // namespace
 
 GitHubRequestError::GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code,
-                                       std::string message)
-    : std::runtime_error(std::move(message)), kind_(kind), status_code_(status_code) {}
+                                       std::string message, std::optional<int> transport_code)
+    : std::runtime_error(std::move(message)), kind_(kind), status_code_(status_code),
+      transport_code_(transport_code) {}
+
+std::optional<int> GitHubRequestError::transport_code() const noexcept {
+    return transport_code_;
+}
 
 GitHubErrorKind GitHubRequestError::kind() const noexcept {
     return kind_;
@@ -617,7 +622,8 @@ GitHubResponse GitHubClient::get(std::string_view path,
     if (result != CURLE_OK) {
         throw GitHubRequestError(GitHubErrorKind::transport, std::nullopt,
                                  "GitHub request failed: " +
-                                     std::string{curl_easy_strerror(result)});
+                                     std::string{curl_easy_strerror(result)},
+                                 static_cast<int>(result));
     }
 
     long status_code = 0;

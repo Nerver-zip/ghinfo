@@ -83,6 +83,16 @@ bounded exponential delay; GitHub `Retry-After` and rate-limit reset hints take
 precedence when available. Stop requests interrupt both the normal interval
 and failure backoff waits.
 
+Transport failures back off from 5 seconds to at most 60 seconds, so a long
+network outage does not leave recovery waiting on the general 15-minute
+backoff ceiling. HTTP and payload failures retain the general ceiling and
+the existing rate-limit hint policy. This bounds the wait between transport
+failures, not the duration of a complete poll or the time until fresh data.
+Failure logs include UTC time, consecutive failures, retry delay, and HTTP
+status or libcurl code/reason when available. Recovery is logged after a
+complete successful poll. Raw exception text, response bodies, and request
+headers are never included in these logs.
+
 The first successful complete poll makes `/readyz` return ready.
 
 Refresh construction is all-or-nothing across the selected or discovered

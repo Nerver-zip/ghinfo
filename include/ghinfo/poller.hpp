@@ -15,8 +15,12 @@ namespace ghinfo {
 [[nodiscard]] std::chrono::seconds
 calculate_backoff(std::uint32_t consecutive_failures, bool rate_limited,
                   std::optional<std::uint64_t> retry_after_seconds,
-                  std::optional<std::uint64_t> reset_epoch_seconds,
-                  std::uint64_t now_epoch_seconds);
+                  std::optional<std::uint64_t> reset_epoch_seconds, std::uint64_t now_epoch_seconds,
+                  GitHubErrorKind kind = GitHubErrorKind::http);
+
+[[nodiscard]] std::string format_poll_failure(const GitHubRequestError& error,
+                                              std::uint32_t consecutive_failures,
+                                              std::chrono::seconds delay);
 
 class Poller {
   public:

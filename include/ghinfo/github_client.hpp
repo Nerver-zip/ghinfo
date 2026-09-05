@@ -23,14 +23,17 @@ enum class GitHubErrorKind {
 
 class GitHubRequestError : public std::runtime_error {
   public:
-    GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code, std::string message);
+    GitHubRequestError(GitHubErrorKind kind, std::optional<long> status_code, std::string message,
+                       std::optional<int> transport_code = std::nullopt);
 
     [[nodiscard]] GitHubErrorKind kind() const noexcept;
     [[nodiscard]] std::optional<long> status_code() const noexcept;
+    [[nodiscard]] std::optional<int> transport_code() const noexcept;
 
   private:
     GitHubErrorKind kind_;
     std::optional<long> status_code_;
+    std::optional<int> transport_code_;
 };
 
 struct GitHubResponse {

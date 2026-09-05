@@ -36,3 +36,19 @@ consumer credentials, or secret-bearing fields were added.
 
 Remote CI/release state and Docker image verification remain external. The
 local checkout preserves the unrelated `.ai-jail` worktree change.
+
+## fix(poller): bound transport recovery and expose safe failure diagnostics
+
+Transport failures now back off for at most 60 seconds instead of 900;
+HTTP/payload failures and rate-limit hints retain their existing policy.
+Poll logs include UTC time, HTTP status or libcurl code/reason, consecutive
+failures, retry delay, and successful recovery. Raw exception messages and
+upstream content are excluded. The public v1 JSON schema is unchanged.
+
+Regression coverage checks transport error codes, safe diagnostic output,
+the transport retry ceiling, and actual HTTP snapshot reads while an
+upstream request is blocked and after it fails. `./scripts/validate.sh`
+passes all 69 tests, formatting, and whitespace checks. The ASan/UBSan preset
+also passes all 69 tests without sanitizer overrides. Gitleaks finds no
+secrets in the patch. See `dev/PLAN.md` for live incident evidence and the
+remaining production/phone verification boundary.

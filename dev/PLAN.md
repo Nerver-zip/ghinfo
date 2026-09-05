@@ -85,3 +85,24 @@ Queued and in-progress workflow runs and jobs are classified as `critical` and
 therefore sort ahead of recent failures. Recent failures are `high`, stale
 failures remain `normal`, and the existing 7/30-day eligibility policy is
 unchanged. See [ADR-0006](../docs/adr/0006-active-work-priority.md).
+
+## Network-outage recovery follow-up
+
+Transport errors now retain libcurl codes for safe operational diagnostics.
+Poll failure logs report UTC time, status/code, consecutive failures, and
+retry delay without logging exception text or upstream content. Recovery is
+logged after a complete successful refresh. Transport backoff is capped at
+60 seconds; other failures retain the existing 900-second ceiling and rate
+limit policy. HTTP integration coverage verifies that activity reads finish
+while an upstream request is blocked and preserve the snapshot after failure.
+
+The reported incident cannot be attributed to DNS, TLS, timeout, or a
+particular HTTP status from the old category-only logs. Live checks of the
+widget's host returned healthy HTTP 200 responses and no current poll failures.
+SSH inspection found 21 transport and 6 HTTP failures in the preceding 24
+hours, with zero container restarts. Repeated activity reads took 19–32 ms,
+with one earlier outlier near 1 second; GitHub probes inside the container
+returned HTTP 200 in 119–159 ms. These observations do not reproduce Android
+startup behavior. Production contains pre-existing staged changes; the
+source/test patch passes `git apply --check` against that tree. Deployment
+and verification on the phone remain pending.

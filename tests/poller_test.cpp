@@ -1,5 +1,6 @@
 #include "ghinfo/poller.hpp"
 
+#include <curl/curl.h>
 #include <httplib.h>
 
 #include <gtest/gtest.h>
@@ -240,6 +241,30 @@ TEST(PollerTest, BoundsExponentialBackoffAndHonorsRateLimitHints) {
     EXPECT_EQ(ghinfo::calculate_backoff(1, true, std::nullopt, 200, 100),
               std::chrono::seconds{100});
     EXPECT_EQ(ghinfo::calculate_backoff(1, true, 5000, 200, 100), std::chrono::seconds{900});
+}
+
+TEST(PollerTest, RetriesTransportFailuresWithinOneMinuteEvenAfterLongOutage) {
+    EXPECT_EQ(ghinfo::calculate_backoff(1, false, std::nullopt, std::nullopt, 100,
+                                        ghinfo::GitHubErrorKind::transport),
+              std::chrono::seconds{5});
+    EXPECT_EQ(ghinfo::calculate_backoff(100, false, std::nullopt, std::nullopt, 100,
+                                        ghinfo::GitHubErrorKind::transport),
+              std::chrono::seconds{60});
+}
+
+TEST(PollerTest, DiagnosticsExposeCodesAndRetryWithoutExceptionText) {
+    const ghinfo::GitHubRequestError transport{ghinfo::GitHubErrorKind::transport, std::nullopt,
+                                               "secret-token\nAuthorization: secret",
+                                               CURLE_OPERATION_TIMEDOUT};
+    const auto message = ghinfo::format_poll_failure(transport, 100, std::chrono::seconds{60});
+    EXPECT_NE(message.find("curl_code=28"), std::string::npos);
+    EXPECT_NE(message.find("transport_reason="), std::string::npos);
+    EXPECT_NE(message.find("consecutive_failures=100 retry_in_seconds=60"), std::string::npos);
+    EXPECT_EQ(message.find("secret"), std::string::npos);
+    EXPECT_EQ(message.find('\n'), std::string::npos);
+    const ghinfo::GitHubRequestError http{ghinfo::GitHubErrorKind::http, 503, "untrusted body"};
+    EXPECT_EQ(ghinfo::format_poll_failure(http, 2, std::chrono::seconds{10}),
+              "poll failed (http) http_status=503 consecutive_failures=2 retry_in_seconds=10");
 }
 
 } // namespace
