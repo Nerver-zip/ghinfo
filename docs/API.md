@@ -239,6 +239,21 @@ Grouped arrays are returned unchanged regardless of the category filter, and
 the response envelope remains the same. An empty or unsupported category
 returns `400` with `invalid_category`.
 
+### `GET /v1/activity/items`
+
+Lightweight form of the activity projection for consumers that only need the
+ordered items. It accepts the same optional `limit` and `category` parameters
+and applies the same eligibility, priority, ordering, diversity, and incident
+deduplication rules as `/v1/activity`. The response contains the common
+`schemaVersion`, `generation`, `generatedAt`, and `stale` fields plus
+`activity.items`; it omits `runningRuns`, `runningJobs`, `failedRuns`,
+`pullRequests`, and `issues`. Before the first complete poll it returns the
+same `503 snapshot_unavailable` response.
+
+This endpoint is additive and does not change the full `/v1/activity`
+compatibility response. Its smaller body is suitable for clients that parse
+the same JSON value repeatedly during rendering.
+
 Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
 `updatedAt`, and `url`. The item kinds are:
 

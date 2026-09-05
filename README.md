@@ -165,6 +165,7 @@ All data endpoints return normalized JSON and respond with
 | `GET /v1/runs`                 | Retained workflow runs and status filters           |
 | `GET /v1/jobs`                 | Jobs in the bounded expansion window                |
 | `GET /v1/activity`             | Prioritized, diversified activity projection        |
+| `GET /v1/activity/items`       | Lightweight prioritized items for small consumers  |
 
 ### Activity views
 
@@ -182,6 +183,18 @@ GET /v1/activity?category=pull_requests&limit=3
 GET /v1/activity?category=issues&limit=3
 ```
 
+Consumers that only need the ordered cards can use the lightweight response:
+
+```text
+GET /v1/activity/items?limit=3
+GET /v1/activity/items?category=pull_requests&limit=3
+GET /v1/activity/items?category=issues&limit=3
+```
+
+It preserves the `schemaVersion`, `generation`, `generatedAt`, `stale`, and
+`activity.items` fields while omitting the compatibility grouped arrays. The
+full `/v1/activity` response remains unchanged.
+
 The default limit is `20`, and the maximum is `100`. Items include explicit
 priority and signal fields, titles for issues and pull requests, names for
 workflows and jobs, UTC timestamps, stable IDs, and URLs.
@@ -198,7 +211,7 @@ The repository includes a paste-ready Kustom text recipe in
 [`Kustom/example.txt`](Kustom/example.txt) and a Catppuccin Mocha variant in
 [`Kustom/catpuccin_example.txt`](Kustom/catpuccin_example.txt). Configure a
 Kustom global named `ghinfo` with the response from
-`GET /v1/activity?limit=3`.
+`GET /v1/activity/items?limit=3`.
 
 For a complete ready-to-import widget, use
 [`assets/ghinfo-kustom-widget.kwgt`](assets/ghinfo-kustom-widget.kwgt). Import

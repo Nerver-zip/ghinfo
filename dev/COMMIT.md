@@ -52,3 +52,19 @@ passes all 69 tests, formatting, and whitespace checks. The ASan/UBSan preset
 also passes all 69 tests without sanitizer overrides. Gitleaks finds no
 secrets in the patch. See `dev/PLAN.md` for live incident evidence and the
 remaining production/phone verification boundary.
+
+## perf(widget): add lightweight activity items response
+
+The full `/v1/activity` response remains compatible with its grouped arrays.
+The additive `/v1/activity/items` endpoint applies the existing limit and
+category selection rules but returns only common metadata and `activity.items`.
+The ready-to-import Kustom preset now points its four WebGet flows to this
+smaller response, keeping the existing global and formulas intact while
+reducing repeated JSON parsing on Android.
+
+API tests cover compact payload shape, category filtering, generation, stale
+metadata, and HTTP routing. The `.kwgt` archive was rebuilt and verified with
+`unzip -t`; extracted content comparison confirms that the four activity URLs
+changed and the initial example global was reduced to the compact items shape.
+Dev build and 70 tests pass, and the API schema change is additive.
+Device-side Kustom timing remains the final verification boundary.

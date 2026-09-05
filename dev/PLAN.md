@@ -106,3 +106,15 @@ returned HTTP 200 in 119–159 ms. These observations do not reproduce Android
 startup behavior. Production contains pre-existing staged changes; the
 source/test patch passes `git apply --check` against that tree. Deployment
 and verification on the phone remain pending.
+
+## Lightweight activity response
+
+The full `/v1/activity` response keeps its compatibility grouped arrays. The
+additive `/v1/activity/items` route returns only common metadata and the
+selected ordered items, with the same `limit` and `category` rules. The
+ready-to-import Kustom preset now uses this route for its four WebGet flows;
+its formulas and `ghinfo` global shape remain unchanged. This avoids sending
+and repeatedly parsing unrelated workflow, issue, and pull-request arrays on
+each widget render. The compact route and HTTP behavior are covered by the
+API tests. Live endpoint timing remains fast; Android/Kustom rendering still
+requires device-side verification.

@@ -164,6 +164,12 @@ view. A category filter selects only its domain items while retaining the
 projection's eligibility, priority, recency, and workflow incident
 deduplication rules.
 
+`GET /v1/activity/items` exposes the same immutable projection with only the
+common metadata and ordered `activity.items` array. It is useful for clients
+that repeatedly parse the response while rendering and do not need the
+compatibility grouped arrays. The full `/v1/activity` response remains
+unchanged.
+
 ## Domain model
 
 The public model is intentionally smaller than GitHub's REST payloads.

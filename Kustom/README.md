@@ -4,7 +4,7 @@ This directory contains a Kustom/KWGT widget and text templates for displaying
 the three highest-priority items returned by `ghinfo`:
 
 ```text
-GET http://<ghinfo-host>:8080/v1/activity?limit=3
+GET http://<ghinfo-host>:8080/v1/activity/items?limit=3
 ```
 
 The address must be reachable from the Android device running Kustom. Do not
@@ -22,7 +22,7 @@ credential.
 ## Kustom setup
 
 1. Create a Text global named `ghinfo`.
-2. Create a Flow with a WebGet action for the endpoint above.
+2. Create a Flow with a WebGet action for the lightweight endpoint above.
 3. Store the response in `ghinfo`. Keep “store file content, not path”
    enabled so the global contains the JSON response.
 4. Trigger the Flow on load and periodically according to the desired refresh
@@ -49,6 +49,8 @@ per-item colors in a single Text module.
 The formulas parse the raw JSON stored in `ghinfo` with Kustom's
 `tc(json, ...)` converter. If WebGet exposes a file path instead of its
 contents, change that action to store the response body before parsing.
+The preset uses `/v1/activity/items`, which omits the larger compatibility
+groups and keeps repeated JSON parsing during widget rendering small.
 
 The API returns items in priority and recency order. The preset includes the
 font needed for the widget icons.
@@ -89,14 +91,14 @@ Check these URLs using the same host as the widget, including from the phone:
 
 - `/healthz`: process reachability, independent of GitHub.
 - `/v1/meta`: `snapshotAvailable`, `generatedAt`, and `poll` failure/retry state.
-- `/v1/activity?limit=3`: the widget response and its `stale` flag.
+- `/v1/activity/items?limit=3`: the widget response and its `stale` flag.
 
 From a terminal on the same network, measure the actual request:
 
 ```bash
 curl --max-time 5 -sS -o /dev/null \
   -w 'HTTP %{http_code}; connect %{time_connect}s; total %{time_total}s\n' \
-  'http://<ghinfo-host>:8080/v1/activity?limit=3'
+  'http://<ghinfo-host>:8080/v1/activity/items?limit=3'
 ```
 
 A quick stale `200` indicates failed refreshes, while a connection timeout

@@ -230,6 +230,21 @@ TEST(ApiTest, SummaryMatchesGoldenContract) {
     EXPECT_EQ(actual, expected);
 }
 
+TEST(ApiTest, ActivityItemsResponseOmitsGroupedArraysForLightweightConsumers) {
+    ghinfo::SnapshotStore store;
+    store.publish(sample_snapshot());
+    store.record_poll_success("2026-08-26T20:45:31Z");
+
+    const auto response = ghinfo::make_activity_items_response(store, 2);
+    ASSERT_EQ(response.status, 200);
+    const auto body = nlohmann::json::parse(response.body);
+    EXPECT_EQ(body.at("activity").size(), 1U);
+    EXPECT_TRUE(body.at("activity").contains("items"));
+    EXPECT_EQ(body.at("activity").at("items").size(), 2U);
+    EXPECT_TRUE(body.at("stale").is_boolean());
+    EXPECT_LT(response.body.size(), ghinfo::make_activity_response(store, 2).body.size());
+}
+
 TEST(ApiTest, ResourcePayloadsNormalizeAndFilterSnapshotData) {
     const auto snapshot = sample_snapshot();
 
@@ -522,6 +537,23 @@ TEST(ApiTest, ServesAllPlannedRoutesAndFiltersOverHttp) {
     EXPECT_EQ(activity_body.at("activity").at("runningRuns").size(), 1U);
     EXPECT_EQ(activity_body.at("activity").at("failedRuns").size(), 1U);
     EXPECT_EQ(activity_body.at("activity").at("items").size(), 6U);
+
+    const auto activity_items = client.Get("/v1/activity/items?limit=2");
+    ASSERT_TRUE(activity_items != nullptr);
+    ASSERT_EQ(activity_items->status, 200);
+    const auto activity_items_body = nlohmann::json::parse(activity_items->body);
+    EXPECT_EQ(activity_items_body.at("activity").size(), 1U);
+    EXPECT_EQ(activity_items_body.at("activity").at("items").size(), 2U);
+    EXPECT_EQ(activity_items_body.at("generation"), 7U);
+
+    const auto issue_items_result = client.Get("/v1/activity/items?category=issues&limit=3");
+    ASSERT_TRUE(issue_items_result != nullptr);
+    ASSERT_EQ(issue_items_result->status, 200);
+    const auto issue_items_body = nlohmann::json::parse(issue_items_result->body);
+    ASSERT_EQ(issue_items_body.at("activity").at("items").size(), 2U);
+    EXPECT_TRUE(std::all_of(issue_items_body.at("activity").at("items").begin(),
+                            issue_items_body.at("activity").at("items").end(),
+                            [](const auto& item) { return item.at("kind") == "issue"; }));
 
     for (const auto limit : {1, 2, 3, 4, 5, 6}) {
         const auto limited = client.Get("/v1/activity?limit=" + std::to_string(limit));

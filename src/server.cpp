@@ -526,6 +526,23 @@ JsonResponse make_activity_response(const SnapshotStore& store, std::size_t limi
     return json_response(body);
 }
 
+JsonResponse make_activity_items_response(const SnapshotStore& store, std::size_t limit,
+                                          std::optional<ActivityCategory> category) {
+    const auto snapshot = store.get();
+    if (snapshot == nullptr) {
+        return make_snapshot_unavailable_response();
+    }
+
+    Json items = Json::array();
+    for (const auto& item : select_activity_items(snapshot->activity_items, limit, category)) {
+        items.push_back(activity_item_json(item));
+    }
+
+    auto body = base_json(store, *snapshot);
+    body["activity"] = Json{{"items", std::move(items)}};
+    return json_response(body);
+}
+
 JsonResponse make_snapshot_unavailable_response() {
     return error_response("snapshot_unavailable", 503);
 }
@@ -654,6 +671,22 @@ void ApiServer::register_routes() {
                     }
                     write_response(make_activity_response(store_, *limit, category), response);
                 });
+
+    server_.Get(
+        "/v1/activity/items", [this](const httplib::Request& request, httplib::Response& response) {
+            JsonResponse error;
+            const auto limit = activity_limit(request, error);
+            if (!limit.has_value()) {
+                write_response(error, response);
+                return;
+            }
+            const auto category = activity_category_filter(request, error);
+            if (!error.body.empty()) {
+                write_response(error, response);
+                return;
+            }
+            write_response(make_activity_items_response(store_, *limit, category), response);
+        });
 }
 
 bool ApiServer::listen() {
