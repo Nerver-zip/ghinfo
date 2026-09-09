@@ -219,6 +219,28 @@ the file in Kustom and update the WebGet URLs if the ghinfo host is different.
 The preset includes the widget layout, activity flows, text formatting,
 Catppuccin colors, and the required font.
 
+For KWGT Free, run the interactive setup wizard to create a personalized
+clipboard clip:
+
+```bash
+python3 setup.py
+```
+
+It asks for the reachable ghinfo URL and refresh interval, optionally seeds
+the initial snapshot, and writes `dist/ghinfo-kustom-widget.clip` with the
+`##KUSTOMCLIP##` markers. The complete component can be pasted into a blank
+KWGT widget; no GitHub credential is requested or embedded. It also writes a
+customized `.kwgt` for Premium users. See [`Kustom/README.md`](Kustom/README.md)
+for the phone clipboard sequence and non-interactive options.
+
+A default complete clip is also available at
+[`assets/ghinfo-kustom-widget.clip`](assets/ghinfo-kustom-widget.clip); run the
+wizard when the service URL or refresh interval differs.
+
+The clipboard clip does not embed the font archive. For the icon glyphs,
+select/import `FiraCodeNerdFontMono.ttf` in Kustom or replace the glyphs with
+plain text; the generated Premium `.kwgt` includes the font automatically.
+
 ![ghinfo Kustom widget preview](assets/kustom-widget.png)
 
 For setup details and troubleshooting, see [`Kustom/README.md`](Kustom/README.md).

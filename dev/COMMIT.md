@@ -68,3 +68,27 @@ metadata, and HTTP routing. The `.kwgt` archive was rebuilt and verified with
 changed and the initial example global was reduced to the compact items shape.
 Dev build and 70 tests pass, and the API schema change is additive.
 Device-side Kustom timing remains the final verification boundary.
+
+## feat(widget): add interactive Kustom clipboard setup
+
+Add a credential-free Python setup wizard that personalizes the checked-in
+native Kustom template with the ghinfo URL and a bounded refresh interval. It
+generates a complete `##KUSTOMCLIP##` component, a layout-only clip, and a
+customized Premium `.kwgt` under ignored `dist/`. An optional snapshot probe
+seeds the initial `ghinfo` global, and the complete clip is copied to the
+desktop clipboard when a supported utility is available.
+
+Preserve the existing layout, formulas, Flows, touch actions, and
+`FiraCodeNerdFontMono.ttf` reference. Track a default complete clip and
+document free clipboard import, command-line options, and font behavior. Add
+deterministic Python tests for URL/interval validation, endpoint/cron
+customization, marker format, ZIP/font integrity, and secret absence; include
+them in `scripts/validate.sh`.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 6 Python tests;
+`gitleaks git --redact --no-banner` finds no leaks; `git diff --check` passes.
+The public API/schema is unchanged. No GitHub credential is requested or
+embedded. Native KWGT clipboard import remains a device-side verification
+boundary.
+
+Co-authored-by: Codex <noreply@openai.com>

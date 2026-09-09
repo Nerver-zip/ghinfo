@@ -32,3 +32,10 @@ core.*
 # Generated/local runtime state
 *.log
 ghinfo-snapshot.json
+
+# Personalized Kustom setup output
+/dist/
+
+# Python setup/test cache
+__pycache__/
+*.py[cod]

@@ -19,6 +19,62 @@ colors, font, and activity flows. After importing, update the WebGet URLs if
 your `ghinfo` server uses a different address. The preset contains no GitHub
 credential.
 
+## Free clipboard setup
+
+The repository also includes a setup wizard that follows the native Kustom
+clipboard format used by the widget package. Run it from the repository root:
+
+```bash
+python3 setup.py
+```
+
+The wizard asks for:
+
+- the `ghinfo` base URL reachable from the Android device (for example,
+  `http://100.118.53.107:8080`, which is also the default);
+- the refresh interval in minutes (default `5`).
+
+It never asks for a GitHub token. The generated files are written to `dist/`:
+
+- `ghinfo-kustom-widget.clip`: complete `##KUSTOMCLIP##` component, including
+  globals, flows, layout, formulas, and touch actions;
+- `ghinfo-kustom-widget-loose.clip`: layout-only modules for advanced manual
+  composition;
+- `ghinfo-kustom-widget.kwgt`: the same customized Premium package.
+
+A safe default clip (pointing at `http://100.118.53.107:8080`) is tracked at
+[`../assets/ghinfo-kustom-widget.clip`](../assets/ghinfo-kustom-widget.clip).
+Use the wizard for a different host or refresh interval.
+
+The script tries to copy the complete `.clip` to the desktop clipboard. If no
+clipboard utility is installed, copy the entire file contents manually,
+including both `##KUSTOMCLIP##` markers.
+
+On the phone:
+
+1. Add a blank KWGT widget and open its editor.
+2. Tap `+` → `Komponent`.
+3. Back out of the Komponent browser; KWGT should offer “Paste Komponent from
+   Clipboard”.
+4. Paste the component and save the widget.
+
+Useful non-interactive examples:
+
+```bash
+python3 setup.py --url http://100.118.53.107:8080 --refresh-minutes 5
+python3 setup.py --url http://100.118.53.107:8080 --no-probe
+```
+
+The optional probe only reads `/v1/activity/items?limit=3` to seed the initial
+display. A failed probe does not stop artifact generation; the Flow fetches a
+fresh snapshot on the phone.
+
+The clipboard format carries the component tree, but not external font files.
+For the icons in the formulas, select/import `FiraCodeNerdFontMono.ttf` in
+Kustom. The Premium `.kwgt` output embeds that font automatically. If the
+font is unavailable, replace the icon glyphs with plain text to avoid missing
+glyph boxes.
+
 ## Kustom setup
 
 1. Create a Text global named `ghinfo`.

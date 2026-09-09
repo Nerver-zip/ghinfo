@@ -118,3 +118,16 @@ and repeatedly parsing unrelated workflow, issue, and pull-request arrays on
 each widget render. The compact route and HTTP behavior are covered by the
 API tests. Live endpoint timing remains fast; Android/Kustom rendering still
 requires device-side verification.
+
+## Completed Kustom clipboard setup
+
+`setup.py` now provides a credential-free interactive wizard for the widget.
+It reads the checked-in native `.kwgt` tree, substitutes the reachable ghinfo
+URL and bounded refresh interval, optionally seeds the initial activity
+snapshot, and emits complete `##KUSTOMCLIP##` and customized `.kwgt` artifacts
+under `dist/`. The generated component preserves the existing globals, Flows,
+layout, formulas, touch actions, and bundled font. Deterministic Python tests
+cover URL/interval validation, all four endpoint substitutions, marker format,
+ZIP integrity, font preservation, and secret absence. A default complete clip
+is tracked under `assets/ghinfo-kustom-widget.clip`; personalized output stays
+ignored under `dist/`.

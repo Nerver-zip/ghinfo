@@ -1,0 +1,252 @@
+##KUSTOMCLIP##
+{
+  "clip_version": 1,
+  "clip_cut": [],
+  "clip_modules": [
+    {
+      "internal_type": "KomponentModule",
+      "internal_title": "ghinfo Activity Widget",
+      "globals_list": {
+        "ghinfo": {
+          "index": 1,
+          "type": "TEXT",
+          "title": "ghinfo",
+          "value": "{\"schemaVersion\":1,\"generation\":0,\"generatedAt\":\"\",\"stale\":true,\"activity\":{\"items\":[]}}"
+        }
+      },
+      "internal_flows": [
+        {
+          "id": "FvLj5OVJ",
+          "name": "ghinfo",
+          "t": [
+            {
+              "id": "TTsL4LaM",
+              "type": "T_CRON",
+              "params": {
+                "cron_string": "*/5 * * * *"
+              }
+            },
+            {
+              "id": "TTWBfvLQ",
+              "type": "T_ONCE"
+            }
+          ],
+          "a": [
+            {
+              "id": "TADwysYN",
+              "type": "A_WGET",
+              "params": {
+                "uri": "http://100.118.53.107:8080/v1/activity/items?limit=3"
+              }
+            },
+            {
+              "id": "TA5UoNfu",
+              "type": "A_GLOBAL",
+              "params": {
+                "store_mode": "TEXT",
+                "global": "ghinfo"
+              }
+            }
+          ]
+        },
+        {
+          "id": "FiSHXH9c",
+          "name": "ghinfo_workflows",
+          "t": [
+            {
+              "id": "TTgJ1biR",
+              "type": "T_MANUAL"
+            }
+          ],
+          "a": [
+            {
+              "id": "TA3HwbMl",
+              "type": "A_WGET",
+              "params": {
+                "uri": "http://100.118.53.107:8080/v1/activity/items?category=workflows&limit=3"
+              }
+            },
+            {
+              "id": "TArG91dT",
+              "type": "A_GLOBAL",
+              "params": {
+                "store_mode": "TEXT",
+                "global": "ghinfo"
+              }
+            }
+          ]
+        },
+        {
+          "id": "F1oloMEN",
+          "name": "ghinfo_pullrequests",
+          "t": [
+            {
+              "id": "TTgJ1biR",
+              "type": "T_MANUAL"
+            }
+          ],
+          "a": [
+            {
+              "id": "TA3HwbMl",
+              "type": "A_WGET",
+              "params": {
+                "uri": "http://100.118.53.107:8080/v1/activity/items?category=pull_requests&limit=3"
+              }
+            },
+            {
+              "id": "TArG91dT",
+              "type": "A_GLOBAL",
+              "params": {
+                "store_mode": "TEXT",
+                "global": "ghinfo"
+              }
+            }
+          ]
+        },
+        {
+          "id": "FY2suhoy",
+          "name": "ghinfo_issues",
+          "t": [
+            {
+              "id": "TTgJ1biR",
+              "type": "T_MANUAL"
+            }
+          ],
+          "a": [
+            {
+              "id": "TA3HwbMl",
+              "type": "A_WGET",
+              "params": {
+                "uri": "http://100.118.53.107:8080/v1/activity/items?category=issues&limit=3"
+              }
+            },
+            {
+              "id": "TArG91dT",
+              "type": "A_GLOBAL",
+              "params": {
+                "store_mode": "TEXT",
+                "global": "ghinfo"
+              }
+            }
+          ]
+        }
+      ],
+      "viewgroup_items": [
+        {
+          "internal_type": "ShapeModule",
+          "shape_type": "RECT",
+          "shape_width": 714.0,
+          "shape_height": 430.0,
+          "shape_corners": 10.0,
+          "paint_color": "#A7000000"
+        },
+        {
+          "internal_type": "TextModule",
+          "text_expression": "$if(gv(ghinfo)=\"\",\"[c=#6C7086]Aguardando atualização...[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\", \"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[0].title\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[0].title\"),tc(json,gv(ghinfo),\".activity.items[0].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[0].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[0].status\"),tc(json,gv(ghinfo),\".activity.items[0].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[0].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[0].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[1].title\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[1].title\"),tc(json,gv(ghinfo),\".activity.items[1].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[1].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[1].status\"),tc(json,gv(ghinfo),\".activity.items[1].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[1].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[1].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[2].title\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[2].title\"),tc(json,gv(ghinfo),\".activity.items[2].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[2].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[2].status\"),tc(json,gv(ghinfo),\".activity.items[2].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[2].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[2].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]",
+          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+          "text_size": 17.0,
+          "position_offset_x": 5.0,
+          "position_offset_y": 10.0,
+          "position_anchor": "TOPLEFT"
+        },
+        {
+          "internal_type": "ShapeModule",
+          "shape_width": 60.0,
+          "shape_height": 60.0,
+          "shape_corners": 10.0,
+          "paint_color": "#9AD20F39",
+          "position_offset_x": -160.0,
+          "position_offset_y": 177.0,
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "TRIGGER_FLOW",
+              "flow_id": "FiSHXH9c"
+            }
+          ]
+        },
+        {
+          "internal_type": "ShapeModule",
+          "shape_width": 60.0,
+          "shape_height": 60.0,
+          "shape_corners": 10.0,
+          "position_offset_x": -60.0,
+          "position_offset_y": 177.0,
+          "paint_color": "#9BE64553",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "TRIGGER_FLOW",
+              "flow_id": "F1oloMEN"
+            }
+          ]
+        },
+        {
+          "internal_type": "ShapeModule",
+          "shape_width": 60.0,
+          "shape_height": 60.0,
+          "shape_corners": 10.0,
+          "position_offset_x": 40.0,
+          "position_offset_y": 177.0,
+          "paint_color": "#98FE640B",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "TRIGGER_FLOW",
+              "flow_id": "FY2suhoy"
+            }
+          ]
+        },
+        {
+          "internal_type": "ShapeModule",
+          "shape_width": 60.0,
+          "shape_height": 60.0,
+          "shape_corners": 10.0,
+          "position_offset_x": 140.0,
+          "position_offset_y": 177.0,
+          "paint_color": "#9BDF8E1D",
+          "internal_events": [
+            {
+              "type": "SINGLE_TAP",
+              "action": "TRIGGER_FLOW",
+              "flow_id": "FvLj5OVJ"
+            }
+          ]
+        },
+        {
+          "internal_type": "TextModule",
+          "text_expression": " ",
+          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+          "text_size": 61.0,
+          "position_offset_x": -140.0,
+          "position_offset_y": 175.0
+        },
+        {
+          "internal_type": "TextModule",
+          "text_expression": " ",
+          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+          "text_size": 61.0,
+          "position_offset_x": -40.0,
+          "position_offset_y": 175.0
+        },
+        {
+          "internal_type": "TextModule",
+          "text_expression": " ",
+          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+          "text_size": 61.0,
+          "position_offset_x": 59.0,
+          "position_offset_y": 177.0
+        },
+        {
+          "internal_type": "TextModule",
+          "text_expression": " ",
+          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+          "text_size": 61.0,
+          "position_offset_x": 158.0,
+          "position_offset_y": 177.0
+        }
+      ]
+    }
+  ]
+}
+##KUSTOMCLIP##
