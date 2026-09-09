@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import math
 import tempfile
 import unittest
 import zipfile
@@ -99,6 +100,79 @@ class KustomSetupTests(unittest.TestCase):
         self.assertIn("viewgroup_items", component)
         self.assertNotIn("Authorization", content)
         self.assertNotIn("github_pat_", content)
+
+    def test_bottom_nav_is_a_single_horizontal_footer_row(self) -> None:
+        preset = load_template_preset(TEMPLATE_KWGT)
+        root = preset["preset_root"]
+        content = next(item for item in root["viewgroup_items"] if item.get("internal_type") == "TextModule")
+        self.assertEqual(content["text_size"], 17.0)
+        self.assertEqual(content["text_expression"].count("\n\n"), 2)
+        expression = content["text_expression"]
+        self.assertEqual(expression.count("tc(ell"), 6)
+        self.assertEqual(expression.count("si(rwidth)"), 6)
+        for index in range(3):
+            repository = f'tc(json,gv(ghinfo),".activity.items[{index}].repository")'
+            self.assertIn(
+                f"tc(ell, {repository}, mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))",
+                expression,
+            )
+            kind = f'tc(json,gv(ghinfo),".activity.items[{index}].kind")'
+            title = f'tc(json,gv(ghinfo),".activity.items[{index}].title")'
+            name = f'tc(json,gv(ghinfo),".activity.items[{index}].name")'
+            selected = f'if({kind}="pull_request",{title},if({kind}="issue",{title},{name}))'
+            self.assertIn(
+                f"tc(ell, {selected}, mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))",
+                expression,
+            )
+        wide_limit = max(20, math.floor((714 - 64) / 11.8))
+        narrow_limit = max(20, math.floor((360 - 64) / 11.8))
+        self.assertEqual(wide_limit, 55)
+        self.assertLess(wide_limit, len("[GATE] Complete the Product V1 vertical slice before limited beta"))
+        self.assertLess(narrow_limit, wide_limit)
+        self.assertNotIn("BottomFooter", {item.get("internal_title") for item in root["viewgroup_items"]})
+        nav = next(item for item in root["viewgroup_items"] if item.get("internal_title") == "BottomNav")
+
+        self.assertEqual(nav["internal_type"], "StackLayerModule")
+        self.assertEqual(nav["config_stacking"], "HORIZONTAL_CENTER")
+        self.assertEqual(nav["position_anchor"], "BOTTOM")
+        self.assertEqual(nav["position_offset_y"], 8.0)
+        self.assertEqual(nav["position_padding_bottom"], 8.0)
+        self.assertEqual(len(nav["viewgroup_items"]), 4)
+
+        expected = {
+            "BtnWorkflows": "FiSHXH9c",
+            "BtnPullRequests": "F1oloMEN",
+            "BtnIssues": "FY2suhoy",
+            "BtnRefresh": "FvLj5OVJ",
+        }
+        expected_offsets = {
+            "BtnWorkflows": 0.0,
+            "BtnPullRequests": 2.0,
+            "BtnIssues": -1.0,
+            "BtnRefresh": 0.0,
+        }
+        for item in nav["viewgroup_items"]:
+            with self.subTest(button=item.get("internal_title")):
+                self.assertIn(item["internal_title"], expected)
+                event = next(event for event in item["internal_events"] if event["action"] == "TRIGGER_FLOW")
+                self.assertEqual(event["flow_id"], expected[item["internal_title"]])
+                shape, icon = item["viewgroup_items"]
+                self.assertEqual(shape["shape_type"], "RECT")
+                self.assertEqual(shape["shape_width"], 132.0)
+                self.assertEqual(shape["shape_height"], 60.0)
+                self.assertEqual(shape["shape_corners"], 12.0)
+                self.assertEqual(icon["position_anchor"], "CENTER")
+                self.assertEqual(icon["text_size"], 48.0)
+                self.assertFalse(icon["text_expression"].endswith((" ", "\t", "\n")))
+                self.assertEqual(icon["position_offset_y"], expected_offsets[item["internal_title"]])
+
+        self.assertFalse(
+            any(
+                any(event.get("action") == "TRIGGER_FLOW" for event in item.get("internal_events", []))
+                for item in root["viewgroup_items"]
+                if item is not nav
+            )
+        )
 
     def test_artifacts_are_valid_and_package_keeps_font(self) -> None:
         preset = customize_preset(load_template_preset(TEMPLATE_KWGT), "http://widget.example:8080", 5)

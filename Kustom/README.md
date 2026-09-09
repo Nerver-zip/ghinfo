@@ -46,17 +46,31 @@ A safe default clip (pointing at `http://100.118.53.107:8080`) is tracked at
 [`../assets/ghinfo-kustom-widget.clip`](../assets/ghinfo-kustom-widget.clip).
 Use the wizard for a different host or refresh interval.
 
-The script tries to copy the complete `.clip` to the desktop clipboard. If no
-clipboard utility is installed, copy the entire file contents manually,
+The script tries to copy the complete `.clip` to the clipboard. On Termux it
+uses `termux-clipboard-set`; on Linux/macOS it tries the usual clipboard
+utilities. If none is installed, copy the entire file contents manually,
 including both `##KUSTOMCLIP##` markers.
 
 On the phone:
 
-1. Add a blank KWGT widget and open its editor.
+1. Add a blank KWGT widget (preferably `4x2`, matching the preset canvas) and
+   open its editor.
 2. Tap `+` → `Komponent`.
 3. Back out of the Komponent browser; KWGT should offer “Paste Komponent from
    Clipboard”.
 4. Paste the component and save the widget.
+
+The imported component contains a single `BottomNav` stack anchored at the
+bottom. It is the footer: four wide rectangular touch targets are laid out
+side by side without an extra footer layer. Open the `ghinfo Activity Widget`
+Komponent itself to inspect its Flows; the widget root does not own those
+Flows. Use `ghinfo-kustom-widget.clip` for the complete import. The companion
+`ghinfo-kustom-widget-loose.clip` intentionally contains only layout modules
+and has no Flows.
+
+Repository and title/name fields use Kustom's `tc(ell, ...)` formulas with
+limits derived from `si(rwidth)`. The API still receives and stores the full
+snapshot; only the rendered text is shortened when the widget is narrower.
 
 Useful non-interactive examples:
 

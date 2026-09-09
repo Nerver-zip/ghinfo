@@ -142,7 +142,7 @@
         },
         {
           "internal_type": "TextModule",
-          "text_expression": "$if(gv(ghinfo)=\"\",\"[c=#6C7086]Aguardando atualização...[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\", \"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[0].title\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[0].title\"),tc(json,gv(ghinfo),\".activity.items[0].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[0].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[0].status\"),tc(json,gv(ghinfo),\".activity.items[0].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[0].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[0].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[1].title\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[1].title\"),tc(json,gv(ghinfo),\".activity.items[1].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[1].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[1].status\"),tc(json,gv(ghinfo),\".activity.items[1].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[1].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[1].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].repository\")))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[2].title\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[2].title\"),tc(json,gv(ghinfo),\".activity.items[2].name\")))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[2].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[2].status\"),tc(json,gv(ghinfo),\".activity.items[2].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[2].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[2].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]",
+          "text_expression": "$if(gv(ghinfo)=\"\",\"[c=#6C7086]Aguardando atualização...[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\", \"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[0].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[0].title\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[0].title\"),tc(json,gv(ghinfo),\".activity.items[0].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[0].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[0].status\"),tc(json,gv(ghinfo),\".activity.items[0].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[0].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[0].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[1].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[1].title\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[1].title\"),tc(json,gv(ghinfo),\".activity.items[1].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[1].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[1].status\"),tc(json,gv(ghinfo),\".activity.items[1].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[1].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[1].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[2].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[2].title\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[2].title\"),tc(json,gv(ghinfo),\".activity.items[2].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[2].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[2].status\"),tc(json,gv(ghinfo),\".activity.items[2].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[2].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[2].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]",
           "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
           "text_size": 17.0,
           "position_offset_x": 5.0,
@@ -150,100 +150,144 @@
           "position_anchor": "TOPLEFT"
         },
         {
-          "internal_type": "ShapeModule",
-          "shape_width": 60.0,
-          "shape_height": 60.0,
-          "shape_corners": 10.0,
-          "paint_color": "#9AD20F39",
-          "position_offset_x": -160.0,
-          "position_offset_y": 177.0,
-          "internal_events": [
+          "internal_type": "StackLayerModule",
+          "internal_title": "BottomNav",
+          "config_stacking": "HORIZONTAL_CENTER",
+          "config_margin": 8.0,
+          "viewgroup_items": [
             {
-              "type": "SINGLE_TAP",
-              "action": "TRIGGER_FLOW",
-              "flow_id": "FiSHXH9c"
-            }
-          ]
-        },
-        {
-          "internal_type": "ShapeModule",
-          "shape_width": 60.0,
-          "shape_height": 60.0,
-          "shape_corners": 10.0,
-          "position_offset_x": -60.0,
-          "position_offset_y": 177.0,
-          "paint_color": "#9BE64553",
-          "internal_events": [
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "BtnWorkflows",
+              "internal_events": [
+                {
+                  "type": "SINGLE_TAP",
+                  "action": "TRIGGER_FLOW",
+                  "flow_id": "FiSHXH9c"
+                }
+              ],
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_width": 132.0,
+                  "shape_height": 60.0,
+                  "shape_corners": 12.0,
+                  "paint_color": "#9AD20F39",
+                  "internal_title": "ButtonBackground",
+                  "shape_type": "RECT"
+                },
+                {
+                  "internal_type": "TextModule",
+                  "text_expression": "",
+                  "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+                  "text_size": 48.0,
+                  "internal_title": "ButtonIcon",
+                  "position_anchor": "CENTER",
+                  "position_offset_x": 0.0,
+                  "position_offset_y": 0.0
+                }
+              ]
+            },
             {
-              "type": "SINGLE_TAP",
-              "action": "TRIGGER_FLOW",
-              "flow_id": "F1oloMEN"
-            }
-          ]
-        },
-        {
-          "internal_type": "ShapeModule",
-          "shape_width": 60.0,
-          "shape_height": 60.0,
-          "shape_corners": 10.0,
-          "position_offset_x": 40.0,
-          "position_offset_y": 177.0,
-          "paint_color": "#98FE640B",
-          "internal_events": [
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "BtnPullRequests",
+              "internal_events": [
+                {
+                  "type": "SINGLE_TAP",
+                  "action": "TRIGGER_FLOW",
+                  "flow_id": "F1oloMEN"
+                }
+              ],
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_width": 132.0,
+                  "shape_height": 60.0,
+                  "shape_corners": 12.0,
+                  "paint_color": "#9BE64553",
+                  "internal_title": "ButtonBackground",
+                  "shape_type": "RECT"
+                },
+                {
+                  "internal_type": "TextModule",
+                  "text_expression": "",
+                  "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+                  "text_size": 48.0,
+                  "internal_title": "ButtonIcon",
+                  "position_anchor": "CENTER",
+                  "position_offset_x": 0.0,
+                  "position_offset_y": 2.0
+                }
+              ]
+            },
             {
-              "type": "SINGLE_TAP",
-              "action": "TRIGGER_FLOW",
-              "flow_id": "FY2suhoy"
-            }
-          ]
-        },
-        {
-          "internal_type": "ShapeModule",
-          "shape_width": 60.0,
-          "shape_height": 60.0,
-          "shape_corners": 10.0,
-          "position_offset_x": 140.0,
-          "position_offset_y": 177.0,
-          "paint_color": "#9BDF8E1D",
-          "internal_events": [
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "BtnIssues",
+              "internal_events": [
+                {
+                  "type": "SINGLE_TAP",
+                  "action": "TRIGGER_FLOW",
+                  "flow_id": "FY2suhoy"
+                }
+              ],
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_width": 132.0,
+                  "shape_height": 60.0,
+                  "shape_corners": 12.0,
+                  "paint_color": "#98FE640B",
+                  "internal_title": "ButtonBackground",
+                  "shape_type": "RECT"
+                },
+                {
+                  "internal_type": "TextModule",
+                  "text_expression": "",
+                  "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+                  "text_size": 48.0,
+                  "internal_title": "ButtonIcon",
+                  "position_anchor": "CENTER",
+                  "position_offset_x": 0.0,
+                  "position_offset_y": -1.0
+                }
+              ]
+            },
             {
-              "type": "SINGLE_TAP",
-              "action": "TRIGGER_FLOW",
-              "flow_id": "FvLj5OVJ"
+              "internal_type": "OverlapLayerModule",
+              "internal_title": "BtnRefresh",
+              "internal_events": [
+                {
+                  "type": "SINGLE_TAP",
+                  "action": "TRIGGER_FLOW",
+                  "flow_id": "FvLj5OVJ"
+                }
+              ],
+              "viewgroup_items": [
+                {
+                  "internal_type": "ShapeModule",
+                  "shape_width": 132.0,
+                  "shape_height": 60.0,
+                  "shape_corners": 12.0,
+                  "paint_color": "#9BDF8E1D",
+                  "internal_title": "ButtonBackground",
+                  "shape_type": "RECT"
+                },
+                {
+                  "internal_type": "TextModule",
+                  "text_expression": "",
+                  "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
+                  "text_size": 48.0,
+                  "internal_title": "ButtonIcon",
+                  "position_anchor": "CENTER",
+                  "position_offset_x": 0.0,
+                  "position_offset_y": 0.0
+                }
+              ]
             }
-          ]
-        },
-        {
-          "internal_type": "TextModule",
-          "text_expression": " ",
-          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
-          "text_size": 61.0,
-          "position_offset_x": -140.0,
-          "position_offset_y": 175.0
-        },
-        {
-          "internal_type": "TextModule",
-          "text_expression": " ",
-          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
-          "text_size": 61.0,
-          "position_offset_x": -40.0,
-          "position_offset_y": 175.0
-        },
-        {
-          "internal_type": "TextModule",
-          "text_expression": " ",
-          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
-          "text_size": 61.0,
-          "position_offset_x": 59.0,
-          "position_offset_y": 177.0
-        },
-        {
-          "internal_type": "TextModule",
-          "text_expression": " ",
-          "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
-          "text_size": 61.0,
-          "position_offset_x": 158.0,
-          "position_offset_y": 177.0
+          ],
+          "position_padding_bottom": 8.0,
+          "position_anchor": "BOTTOM",
+          "position_offset_x": 0.0,
+          "position_offset_y": 8.0
         }
       ]
     }

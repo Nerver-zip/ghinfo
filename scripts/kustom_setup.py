@@ -249,9 +249,10 @@ def fetch_initial_activity(base_url: str, timeout: float = 5.0) -> tuple[Optiona
 
 
 def copy_to_clipboard(content: str) -> Optional[str]:
-    """Try common Linux/macOS clipboard providers without invoking a shell."""
+    """Try Termux, Linux, and macOS clipboard providers without a shell."""
 
     commands = (
+        ("termux-clipboard-set", ["termux-clipboard-set"]),
         ("wl-copy", ["wl-copy"]),
         ("xclip", ["xclip", "-selection", "clipboard"]),
         ("xsel", ["xsel", "--clipboard", "--input"]),

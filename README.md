@@ -231,7 +231,7 @@ the initial snapshot, and writes `dist/ghinfo-kustom-widget.clip` with the
 `##KUSTOMCLIP##` markers. The complete component can be pasted into a blank
 KWGT widget; no GitHub credential is requested or embedded. It also writes a
 customized `.kwgt` for Premium users. See [`Kustom/README.md`](Kustom/README.md)
-for the phone clipboard sequence and non-interactive options.
+for the phone clipboard sequence, Termux support, and non-interactive options.
 
 A default complete clip is also available at
 [`assets/ghinfo-kustom-widget.clip`](assets/ghinfo-kustom-widget.clip); run the
@@ -240,6 +240,15 @@ wizard when the service URL or refresh interval differs.
 The clipboard clip does not embed the font archive. For the icon glyphs,
 select/import `FiraCodeNerdFontMono.ttf` in Kustom or replace the glyphs with
 plain text; the generated Premium `.kwgt` includes the font automatically.
+
+Use a `4x2` blank widget to match the preset canvas. The component uses the
+four wide rectangular buttons themselves as the bottom footer, with no extra
+footer layer. Their Flows are inside `ghinfo Activity Widget`; the root
+widget's Flows tab is not the expected location. Do not import `*-loose.clip`,
+which is layout-only.
+
+Long repository and title/name values are truncated in Kustom using a limit
+derived from the widget width; the API payload remains unchanged.
 
 ![ghinfo Kustom widget preview](assets/kustom-widget.png)
 
