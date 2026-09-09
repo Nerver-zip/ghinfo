@@ -92,3 +92,19 @@ embedded. Native KWGT clipboard import remains a device-side verification
 boundary.
 
 Co-authored-by: Codex <noreply@openai.com>
+
+## docs(readme): refresh project guide and widget preview
+
+Rewrite the root README around the current service contract: local and Compose
+quick starts, environment configuration, HTTP routes, prioritized activity,
+Kustom Premium/Free setup, security boundaries, development validation, and
+troubleshooting. Keep links to the detailed architecture, API, security,
+testing, release, roadmap, and widget documents as the source of truth.
+
+Replace the README preview with the corrected Lawnchair capture from the real
+widget, including responsive issue-title truncation and the bottom action row.
+The public API/schema and runtime behavior are unchanged.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 7 Python tests;
+`git diff --check` passes; Gitleaks finds no secrets; local README links and
+the PNG decode successfully.
