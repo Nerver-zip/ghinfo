@@ -61,6 +61,8 @@ class GitHubClient {
     [[nodiscard]] GitHubResponse get(std::string_view path,
                                      const GitHubRequestOptions& options = {}) const;
     [[nodiscard]] std::vector<Issue> fetch_open_issues(const RepositoryRef& repository) const;
+    [[nodiscard]] std::vector<Issue> fetch_recent_closed_issues(const RepositoryRef& repository,
+                                                                std::size_t limit) const;
     [[nodiscard]] std::vector<PullRequest>
     fetch_open_pull_requests(const RepositoryRef& repository) const;
     [[nodiscard]] std::vector<PullRequest>

@@ -122,6 +122,9 @@ class KustomSetupTests(unittest.TestCase):
         self.assertEqual(expression.count("tc(ell"), 6)
         self.assertEqual(expression.count("si(rwidth)"), 9)
         self.assertEqual(expression.count("tc(rpad"), 3)
+        self.assertEqual(expression.count('kind")="running_run"'), 6)
+        self.assertEqual(expression.count('kind")="completed_run"'), 6)
+        self.assertEqual(expression.count('signals[0]")="recent_closed_issue"'), 3)
         self.assertEqual(
             content["internal_formulas"]["position_offset_x"],
             "$mu(max,8,mu(min,16,si(rwidth)/70))$",

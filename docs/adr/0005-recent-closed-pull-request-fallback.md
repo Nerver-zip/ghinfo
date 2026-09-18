@@ -1,6 +1,6 @@
 # ADR-0005: Recent closed pull-request activity fallback
 
-- Status: Accepted
+- Status: Superseded by [ADR-0007](0007-mixed-state-activity-previews.md)
 - Date: 2026-08-30
 - Scope: GitHub pull-request collection and prioritized activity projection
 
@@ -24,19 +24,22 @@ requests per repository from GitHub, using `state=closed`, `sort=updated`, and
 Expose the fallback records only through the prioritized `activity.items`
 projection. They remain `kind: "pull_request"`, have `normal` priority, and
 carry the `recent_closed_pull_request` signal. The fallback is suppressed when
-at least one open pull request exists in the complete snapshot.
+at least one open pull request exists in the complete snapshot. This decision
+was later generalized by ADR-0007 so that partially populated previews can mix
+open and recent closed records.
 
 Keep `/v1/pulls`, repository pull-request arrays, summary counts, and grouped
 `activity.pullRequests` open-only. Keep the service in-memory, read-only, and
 consumer-agnostic.
 
-## Consequences
+## Historical consequences
 
 The activity view remains useful when review queues are empty while existing
 open-PR consumers retain their contract. The additional collection is bounded
 to one page and three records per repository, but it adds one request per
-repository only for snapshots without open pull requests. Closed fallback
-items have lower priority than current failures, active work, and open PRs.
+repository only for snapshots without open pull requests. This was the
+original bounded behavior; ADR-0007 now permits the same records to fill a
+partially populated preview.
 
 The fallback is not a notification history and does not persist first-seen
 state. A closed PR can appear again in a later snapshot if it remains among the
@@ -51,8 +54,9 @@ three most recently updated closed PRs and no open PR exists.
 - Adding a Kustom-specific field or endpoint would violate the consumer-neutral
   API boundary.
 
-## Verification
+## Historical verification
 
 The GitHub client test checks the bounded closed-PR query and ordering. Snapshot
-tests verify fallback activation only when there are no open PRs, and API tests
-verify that fallback items stay confined to prioritized activity.
+tests verified fallback activation only when there were no open PRs. Current
+mixed-state coverage is maintained by ADR-0007's client, snapshot, activity,
+and API tests.

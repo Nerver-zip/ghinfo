@@ -63,20 +63,93 @@ TEST(ActivityTest, ClassifiesItemsAndOrdersByPriorityThenRecency) {
     EXPECT_EQ(items[0].kind, ghinfo::ActivityKind::running_job);
     EXPECT_EQ(items[0].priority, ghinfo::ActivityPriority::critical);
     EXPECT_EQ(items[0].name, std::optional<std::string>{"clang-check"});
-    EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::pull_request);
+    EXPECT_EQ(items[1].kind, ghinfo::ActivityKind::issue);
     EXPECT_EQ(items[1].priority, ghinfo::ActivityPriority::high);
-    EXPECT_EQ(items[1].title, std::optional<std::string>{"Example pull request"});
-    EXPECT_EQ(items[2].kind, ghinfo::ActivityKind::failed_run);
+    EXPECT_EQ(items[1].title, std::optional<std::string>{"Example issue"});
+    EXPECT_EQ(items[2].kind, ghinfo::ActivityKind::pull_request);
     EXPECT_EQ(items[2].priority, ghinfo::ActivityPriority::high);
-    const std::vector<std::string> recent_run_signals{"failed_run", "recent_failure"};
-    EXPECT_EQ(items[2].signals, recent_run_signals);
-    EXPECT_EQ(items[2].name, std::optional<std::string>{"CI"});
-    EXPECT_EQ(items[3].kind, ghinfo::ActivityKind::failed_job);
+    EXPECT_EQ(items[2].title, std::optional<std::string>{"Example pull request"});
+    EXPECT_EQ(items[3].kind, ghinfo::ActivityKind::failed_run);
     EXPECT_EQ(items[3].priority, ghinfo::ActivityPriority::high);
-    EXPECT_EQ(items[3].run_id, std::optional<ghinfo::GithubId>{3001});
-    EXPECT_EQ(items[4].kind, ghinfo::ActivityKind::issue);
-    EXPECT_EQ(items[4].priority, ghinfo::ActivityPriority::normal);
-    EXPECT_EQ(items[4].title, std::optional<std::string>{"Example issue"});
+    const std::vector<std::string> recent_run_signals{"failed_run", "recent_failure"};
+    EXPECT_EQ(items[3].signals, recent_run_signals);
+    EXPECT_EQ(items[3].name, std::optional<std::string>{"CI"});
+    EXPECT_EQ(items[4].kind, ghinfo::ActivityKind::failed_job);
+    EXPECT_EQ(items[4].priority, ghinfo::ActivityPriority::high);
+    EXPECT_EQ(items[4].run_id, std::optional<ghinfo::GithubId>{3001});
+}
+
+TEST(ActivityTest, FillsEachCategoryWithLowerPriorityItems) {
+    ghinfo::Snapshot snapshot;
+    snapshot.generated_at = "2026-08-28T00:00:00Z";
+    snapshot.workflow_runs = {
+        ghinfo::WorkflowRun{3001, "owner/repo", "running", ghinfo::RunStatus::in_progress,
+                            std::nullopt, "main", "sha-1", "push", "2026-08-27T12:00:00Z",
+                            "2026-08-27T12:01:00Z", "run-3001"},
+        ghinfo::WorkflowRun{3002, "owner/repo", "completed", ghinfo::RunStatus::completed,
+                            ghinfo::Conclusion::success, "main", "sha-2", "push",
+                            "2026-08-27T11:00:00Z", "2026-08-27T11:01:00Z", "run-3002"},
+    };
+    snapshot.pull_requests = {
+        ghinfo::PullRequest{2001, 17, "owner/repo", "Open PR", "user", false, "head", "main",
+                            "2026-08-27T10:00:00Z", "2026-08-27T12:00:00Z", "pr-open"},
+    };
+    snapshot.recent_closed_pull_requests = {
+        ghinfo::PullRequest{2002, 16, "owner/repo", "Closed PR 1", "user", false, "head", "main",
+                            "2026-08-26T10:00:00Z", "2026-08-26T12:00:00Z", "pr-closed-1"},
+        ghinfo::PullRequest{2003, 15, "owner/repo", "Closed PR 2", "user", false, "head", "main",
+                            "2026-08-25T10:00:00Z", "2026-08-25T12:00:00Z", "pr-closed-2"},
+    };
+    snapshot.issues = {
+        ghinfo::Issue{1001,
+                      42,
+                      "owner/repo",
+                      "Open issue",
+                      "user",
+                      {},
+                      "2026-08-27T10:00:00Z",
+                      "2026-08-27T12:00:00Z",
+                      "issue-open"},
+    };
+    snapshot.recent_closed_issues = {
+        ghinfo::Issue{1002,
+                      41,
+                      "owner/repo",
+                      "Closed issue 1",
+                      "user",
+                      {},
+                      "2026-08-26T10:00:00Z",
+                      "2026-08-26T12:00:00Z",
+                      "issue-closed-1"},
+        ghinfo::Issue{1003,
+                      40,
+                      "owner/repo",
+                      "Closed issue 2",
+                      "user",
+                      {},
+                      "2026-08-25T10:00:00Z",
+                      "2026-08-25T12:00:00Z",
+                      "issue-closed-2"},
+    };
+
+    const auto items = ghinfo::build_activity_items(snapshot);
+    const auto workflows =
+        ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::workflows);
+    const auto pull_requests =
+        ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::pull_requests);
+    const auto issues = ghinfo::select_activity_items(items, 3, ghinfo::ActivityCategory::issues);
+
+    ASSERT_EQ(workflows.size(), 2U);
+    EXPECT_EQ(workflows[0].kind, ghinfo::ActivityKind::running_run);
+    EXPECT_EQ(workflows[1].kind, ghinfo::ActivityKind::completed_run);
+    ASSERT_EQ(pull_requests.size(), 3U);
+    EXPECT_EQ(pull_requests[0].signals.front(), "open_pull_request");
+    EXPECT_EQ(pull_requests[1].signals.front(), "recent_closed_pull_request");
+    EXPECT_EQ(pull_requests[2].signals.front(), "recent_closed_pull_request");
+    ASSERT_EQ(issues.size(), 3U);
+    EXPECT_EQ(issues[0].signals.front(), "open_issue");
+    EXPECT_EQ(issues[1].signals.front(), "recent_closed_issue");
+    EXPECT_EQ(issues[2].signals.front(), "recent_closed_issue");
 }
 
 TEST(ActivityTest, UsesRepositoryKindAndIdAsDeterministicTieBreakers) {
@@ -243,7 +316,8 @@ TEST(ActivityTest, SelectsBalancedCategoriesAndRedistributesMissingCategories) {
                 const auto is_work = item.kind == ghinfo::ActivityKind::running_job ||
                                      item.kind == ghinfo::ActivityKind::running_run ||
                                      item.kind == ghinfo::ActivityKind::failed_job ||
-                                     item.kind == ghinfo::ActivityKind::failed_run;
+                                     item.kind == ghinfo::ActivityKind::failed_run ||
+                                     item.kind == ghinfo::ActivityKind::completed_run;
                 const auto actual = is_work                                           ? 0
                                     : item.kind == ghinfo::ActivityKind::pull_request ? 1
                                                                                       : 2;

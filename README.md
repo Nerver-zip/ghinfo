@@ -207,12 +207,14 @@ curl -fsS 'http://127.0.0.1:8080/v1/activity/items?category=issues&limit=3'
 
 - `limit` defaults to `20` and accepts `1` through `100`.
 - `category` is optional: `workflows`, `pull_requests`, or `issues`.
-- Active runs/jobs are `critical`; recent failures and open pull requests are
-  `high`; stale failures, closed-pull-request fallbacks, and issues are
-  `normal`.
+- Active runs/jobs are `critical`; recent failures and open issues/pull
+  requests are `high`; stale failures, completed runs, and recent closed
+  issues/pull requests are `normal`.
 - Failures older than 30 days are omitted from `activity.items`.
-- If a snapshot has no open pull requests, up to three recently updated closed
-  pull requests per repository may appear only in the activity projection.
+- Each category is filled independently: open issues/pull requests and active
+  workflows appear first, then recent closed records fill any remaining slots
+  up to three. An open item therefore does not hide lower-priority items in
+  the same category.
 - `/v1/activity/items` keeps `schemaVersion`, `generation`, `generatedAt`,
   `stale`, and `activity.items`, while omitting compatibility grouped arrays.
 

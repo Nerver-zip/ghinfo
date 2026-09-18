@@ -17,6 +17,7 @@ struct Snapshot {
     std::string last_successful_poll;
     std::vector<Repository> repositories;
     std::vector<Issue> issues;
+    std::vector<Issue> recent_closed_issues;
     std::vector<PullRequest> pull_requests;
     std::vector<PullRequest> recent_closed_pull_requests;
     std::vector<WorkflowRun> workflow_runs;

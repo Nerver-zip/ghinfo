@@ -15,7 +15,7 @@ namespace ghinfo {
 
 namespace {
 
-constexpr std::size_t kClosedPullRequestFallbackLimit = 3;
+constexpr std::size_t kActivityCategoryLimit = 3;
 
 [[nodiscard]] bool is_active(const WorkflowRun& run) {
     return run.status == RunStatus::queued || run.status == RunStatus::in_progress;
@@ -78,10 +78,23 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
                                       std::make_move_iterator(workflow_runs.end()));
     }
 
-    if (snapshot.pull_requests.empty()) {
+    if (snapshot.issues.size() < kActivityCategoryLimit) {
+        const auto closed_issue_limit = kActivityCategoryLimit - snapshot.issues.size();
         for (const auto& repository_ref : repositories) {
-            auto closed_pull_requests = github.fetch_recent_closed_pull_requests(
-                repository_ref, kClosedPullRequestFallbackLimit);
+            auto closed_issues =
+                github.fetch_recent_closed_issues(repository_ref, closed_issue_limit);
+            snapshot.recent_closed_issues.insert(snapshot.recent_closed_issues.end(),
+                                                 std::make_move_iterator(closed_issues.begin()),
+                                                 std::make_move_iterator(closed_issues.end()));
+        }
+    }
+
+    if (snapshot.pull_requests.size() < kActivityCategoryLimit) {
+        const auto closed_pull_request_limit =
+            kActivityCategoryLimit - snapshot.pull_requests.size();
+        for (const auto& repository_ref : repositories) {
+            auto closed_pull_requests =
+                github.fetch_recent_closed_pull_requests(repository_ref, closed_pull_request_limit);
             snapshot.recent_closed_pull_requests.insert(
                 snapshot.recent_closed_pull_requests.end(),
                 std::make_move_iterator(closed_pull_requests.begin()),
@@ -94,6 +107,11 @@ Snapshot build_snapshot(const Config& config, const GitHubClient& github, std::u
                   return left.full_name < right.full_name;
               });
     std::sort(snapshot.issues.begin(), snapshot.issues.end(),
+              [](const Issue& left, const Issue& right) {
+                  return std::tie(left.repository, left.number) <
+                         std::tie(right.repository, right.number);
+              });
+    std::sort(snapshot.recent_closed_issues.begin(), snapshot.recent_closed_issues.end(),
               [](const Issue& left, const Issue& right) {
                   return std::tie(left.repository, left.number) <
                          std::tie(right.repository, right.number);

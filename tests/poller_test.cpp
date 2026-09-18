@@ -83,14 +83,15 @@ void register_repository(httplib::Server& server, std::atomic<bool>& healthy) {
                        "\"updated_at\":\"2026-08-26T13:00:00Z\"}",
                        "application/json");
                });
-    server.Get("/repos/owner/repo/issues",
-               [&healthy, issues](const httplib::Request&, httplib::Response& response) {
-                   if (!healthy.load()) {
-                       response.status = 503;
-                       return;
-                   }
-                   response.set_content(issues, "application/json");
-               });
+    server.Get("/repos/owner/repo/issues", [&healthy, issues](const httplib::Request& request,
+                                                              httplib::Response& response) {
+        if (!healthy.load()) {
+            response.status = 503;
+            return;
+        }
+        response.set_content(request.get_param_value("state") == "closed" ? "[]" : issues,
+                             "application/json");
+    });
     server.Get("/repos/owner/repo/pulls",
                [&healthy, pull_requests](const httplib::Request&, httplib::Response& response) {
                    if (!healthy.load()) {

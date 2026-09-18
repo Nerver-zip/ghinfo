@@ -24,10 +24,10 @@ Classify failures updated within 7 days as `high` and retain the
 from `activity.items`. Failures with an unparseable timestamp retain the
 failure base priority (`high`) without an age signal.
 
-Open pull requests remain `high`; open issues and recent closed pull-request
-fallback items remain `normal`. The no-category diversity rules, category
-views, incident deduplication, grouped fields, and `/v1/runs` history are
-unchanged.
+Open pull requests and issues remain `high`; recent closed records and
+completed non-failure workflow runs are `normal`. The no-category diversity
+rules, category views, incident deduplication, grouped fields, and `/v1/runs`
+history are unchanged.
 
 This supersedes only the priority-band mapping described by ADR-0001 and the
 temporal priority mapping in ADR-0002. It does not change failure eligibility

@@ -18,9 +18,12 @@ not turn the activity projection into a notification queue.
 Add the optional `category` query parameter to `GET /v1/activity` with these
 stable values:
 
-- `workflows`: failed and running workflow runs and jobs;
-- `pull_requests`: open pull requests;
-- `issues`: open issues.
+- `workflows`: failed, running, and completed workflow runs plus failed and
+  running jobs;
+- `pull_requests`: open pull requests followed by recent closed pull requests
+  when the preview has remaining slots;
+- `issues`: open issues followed by recent closed issues when the preview has
+  remaining slots.
 
 The filter is applied to the already-built immutable activity projection after
 failure-age eligibility. Category results preserve the existing priority,

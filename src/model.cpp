@@ -48,6 +48,8 @@ std::string to_string(ActivityKind kind) {
         return "running_job";
     case ActivityKind::running_run:
         return "running_run";
+    case ActivityKind::completed_run:
+        return "completed_run";
     case ActivityKind::pull_request:
         return "pull_request";
     case ActivityKind::issue:

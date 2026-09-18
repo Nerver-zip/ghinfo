@@ -602,6 +602,45 @@ TEST(GitHubClientTest, FetchesRecentClosedPullRequestsWithBoundedUpdatedOrdering
     EXPECT_EQ(pull_requests[1].title, "Older closed pull request");
 }
 
+TEST(GitHubClientTest, FetchesRecentClosedIssuesWithoutPullRequests) {
+    LocalHttpServer server;
+    const auto closed_issues = read_fixture("tests/fixtures/github/closed_issues.json");
+    server.server().Get("/repos/owner/repo/issues",
+                        [&](const httplib::Request& request, httplib::Response& response) {
+                            EXPECT_EQ(request.get_param_value("state"), "closed");
+                            EXPECT_EQ(request.get_param_value("sort"), "updated");
+                            EXPECT_EQ(request.get_param_value("direction"), "desc");
+                            EXPECT_EQ(request.get_param_value("per_page"), "100");
+                            EXPECT_EQ(request.get_param_value("page"), "1");
+                            response.set_content(closed_issues, "application/json");
+                        });
+
+    ghinfo::GitHubClient client{
+        "test-token",
+        ghinfo::GitHubClientOptions{.base_url = server.base_url()},
+    };
+
+    const auto issues =
+        client.fetch_recent_closed_issues(ghinfo::parse_repository_ref("owner/repo"), 2);
+
+    ASSERT_EQ(issues.size(), 2U);
+    EXPECT_EQ(issues[0].id, 1002U);
+    EXPECT_EQ(issues[0].title, "Most recent closed issue");
+    EXPECT_EQ(issues[1].id, 1003U);
+    EXPECT_EQ(issues[1].title, "Older closed issue");
+}
+
+TEST(GitHubClientTest, RejectsInvalidClosedIssueActivityLimit) {
+    ghinfo::GitHubClient client{"test-token"};
+
+    EXPECT_THROW(
+        (void)client.fetch_recent_closed_issues(ghinfo::parse_repository_ref("owner/repo"), 0),
+        std::invalid_argument);
+    EXPECT_THROW(
+        (void)client.fetch_recent_closed_issues(ghinfo::parse_repository_ref("owner/repo"), 101),
+        std::invalid_argument);
+}
+
 TEST(GitHubClientTest, RejectsInvalidClosedPullRequestFallbackLimit) {
     ghinfo::GitHubClient client{"test-token"};
 

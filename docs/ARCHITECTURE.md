@@ -136,8 +136,8 @@ priority bands, stable signals, and deterministic
 recency/repository/kind/ID ordering instead of a consumer-facing opaque score.
 Failed runs and failed jobs are distinct items.
 
-The HTTP limit view balances three categories—jobs/workflows, open pull
-requests, and open issues—using equal rounds, redistributing missing category
+The HTTP limit view balances three categories—workflows, pull requests, and
+issues—using equal rounds, redistributing missing category
 slots and filling remainders by global priority. This selection is computed
 from the immutable item vector for each read; it is not a queue and has no
 consumer state. The first three items avoid a failed run/job duplicate for the
@@ -146,14 +146,16 @@ is deterministically deferred beyond the protected top three. “New since last
 observation” is deferred until first-seen state has an explicit
 lifetime/persistence policy.
 
-When a complete snapshot has no open pull requests, the collector performs a
-bounded fallback collection of up to 3 recently updated closed pull requests
-per repository. These records are stored separately and contribute only to
-`Snapshot::activity_items` with normal priority and the
-`recent_closed_pull_request` signal. The `/v1/pulls` resource, grouped
-`activity.pullRequests` field, repository resource, and summary continue to
-describe open pull requests only. Any open pull request suppresses the closed
-fallback for that snapshot.
+For each category, the collector fills a bounded preview independently. If the
+open issue or pull-request count is below three, it requests up to the missing
+slots of recently updated closed records per repository. These records are
+stored separately and contribute only to `Snapshot::activity_items` with
+normal priority and an explicit recent-closed signal. Open records remain
+first in their category, but an open record does not suppress lower-priority
+records needed to fill the preview. The `/v1/pulls`, `/v1/issues`, grouped
+activity fields, repository resources, and summary continue to describe open
+records only. Completed non-failure workflow runs similarly fill workflow
+previews after active and failed work.
 
 The projection is built once for each complete candidate snapshot and stored in
 `Snapshot::activity_items`. An HTTP request validates `limit` and the optional
@@ -189,10 +191,10 @@ Normalization protects consumers from upstream payload churn and avoids making g
 
 MVP intent:
 
-- all open issues for each configured or discovered repository;
-- all open pull requests;
-- up to 3 recently updated closed pull requests per repository only when the
-  complete snapshot has no open pull requests, for the activity fallback;
+- all open issues and pull requests for each configured or discovered
+  repository;
+- up to the missing slots (maximum three per category) of recently updated
+  closed issues and pull requests per repository, for activity previews;
 - bounded recent workflow runs;
 - jobs for the configured recent workflow-run detail window, plus active runs
   outside that window.

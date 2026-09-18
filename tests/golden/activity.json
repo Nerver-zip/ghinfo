@@ -11,6 +11,17 @@
     "status": "queued"
   },
   {
+    "kind": "issue",
+    "priority": "high",
+    "signals": ["open_issue"],
+    "repository": "owner/repo",
+    "id": 1003,
+    "updatedAt": "2026-08-26T13:00:00Z",
+    "url": "https://github.com/owner/repo/issues/42",
+    "number": 42,
+    "title": "Example issue"
+  },
+  {
     "kind": "pull_request",
     "priority": "high",
     "signals": ["open_pull_request"],
@@ -48,18 +59,7 @@
   },
   {
     "kind": "issue",
-    "priority": "normal",
-    "signals": ["open_issue"],
-    "repository": "owner/repo",
-    "id": 1003,
-    "updatedAt": "2026-08-26T13:00:00Z",
-    "url": "https://github.com/owner/repo/issues/42",
-    "number": 42,
-    "title": "Example issue"
-  },
-  {
-    "kind": "issue",
-    "priority": "normal",
+    "priority": "high",
     "signals": ["open_issue"],
     "repository": "other/repo",
     "id": 1004,

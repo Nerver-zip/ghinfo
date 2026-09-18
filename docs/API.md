@@ -141,7 +141,7 @@ Planned filter:
 ### `GET /v1/pulls`
 
 Open normalized pull requests. This endpoint contains only open pull requests;
-recent closed pull requests used by the activity fallback are not included.
+recent closed pull requests used to fill activity previews are not included.
 
 ### `GET /v1/runs`
 
@@ -180,8 +180,10 @@ Consumer-neutral "things currently worth inspecting", built only from objective 
 
 - running workflow runs and jobs;
 - failed runs;
-- open pull requests;
-- recent/open issues.
+- completed workflow runs;
+- open pull requests followed by recent closed pull requests when the preview
+  still has room;
+- open issues followed by recent closed issues when the preview still has room.
 
 Response shape:
 
@@ -225,8 +227,8 @@ GET /v1/activity?category=pull_requests&limit=3
 GET /v1/activity?category=issues&limit=3
 ```
 
-`workflows` includes `failed_run`, `failed_job`, `running_run`, and
-`running_job` items. `pull_requests` includes only `pull_request` items, and
+`workflows` includes `failed_run`, `failed_job`, `running_run`, `running_job`,
+and `completed_run` items. `pull_requests` includes `pull_request` items, and
 `issues` includes only `issue` items. Category filtering occurs after the
 temporal eligibility policy, so expired failures remain absent from every
 category view. The selected items retain the existing priority, recency, and
@@ -265,17 +267,22 @@ Each item contains `kind`, `priority`, `signals`, `repository`, `id`, nullable
   `name`, and `status`;
 - `running_run`: queued or in-progress workflow run, `critical` priority, with
   `name` and `status`;
+- `completed_run`: completed workflow run, `normal` priority, with `name`,
+  `status`, and `conclusion`;
 - `pull_request`: an open pull request (`high` priority) or a recent closed
-  pull request fallback (`normal` priority), with `number` and `title`;
-- `issue`: open issue, `normal` priority, with `number` and `title`.
+  pull request (`normal` priority), with `number` and `title`;
+- `issue`: an open issue (`high` priority) or a recent closed issue (`normal`
+  priority), with `number` and `title`.
 
-If the complete snapshot contains no open pull requests, the collector makes a
-bounded fallback request for up to 3 closed pull requests per repository,
-ordered by GitHub's `updated` timestamp descending. These items are exposed
-only through `activity.items`, carry the `recent_closed_pull_request` signal,
-and are omitted when any open pull request exists. The grouped
-`activity.pullRequests` field, `/v1/pulls`, repository pull-request arrays, and
-summary counts continue to represent open pull requests only.
+Each category preview is filled independently. The collector requests a
+bounded page of recent closed records only when the corresponding open count
+is below three, then the category projection places open/active records first
+and uses recent closed records to fill the remaining slots. Therefore one open
+issue or pull request does not suppress recent closed items in that category.
+Closed records are exposed only through `activity.items`, with
+`recent_closed_pull_request` or `recent_closed_issue` signals. The grouped
+`activity.pullRequests` and `activity.issues` fields, `/v1/pulls`, `/v1/issues`,
+repository arrays, and summary counts remain open-only.
 
 Failed workflow runs and jobs use a temporal policy relative to the snapshot's
 `generatedAt`. A failure updated within the previous 7 days is `high` and
@@ -288,11 +295,11 @@ payloads are expected to contain valid UTC timestamps.
 
 Running jobs and workflow runs are `critical` regardless of age, so active
 work always sorts ahead of failures. Open pull requests and issues remain
-available with their current `high` and `normal` priorities. The resulting
-priority order is `critical` active work, `high` recent failures and open pull
-requests, then `normal` stale failures, closed pull-request fallbacks, and
-issues. This priority is an explicit urgency classification; recency still
-orders items within a priority band.
+available with `high` priority. Recent closed records and completed non-failure
+workflow runs are `normal`. The resulting priority order is `critical` active
+work, `high` recent failures and open records, then `normal` stale failures,
+completed runs, and recent closed records. This priority is an explicit
+urgency classification; recency still orders items within a priority band.
 
 The complete eligible item set is ordered by priority band, effective
 timestamp descending, repository ascending, kind ascending, and stable
@@ -313,8 +320,9 @@ The `limit` view applies deterministic diversity after eligibility filtering:
   remainder by global order;
 - missing categories redistribute their unused slots.
 
-The jobs/workflows category contains failed and running jobs and workflow
-runs. Failed runs and failed jobs remain distinct items. When an alternative
+The jobs/workflows category contains failed, running, and completed workflow
+runs plus failed and running jobs. Failed runs and failed jobs remain distinct
+items. When an alternative
 exists, the first three returned items avoid showing both the failed run and a
 failed job from the same `repository` and workflow run. If no alternative
 exists, both remain available. The returned items follow the deterministic

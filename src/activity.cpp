@@ -152,6 +152,7 @@ enum class FailureAge {
     case ActivityKind::failed_run:
     case ActivityKind::running_job:
     case ActivityKind::running_run:
+    case ActivityKind::completed_run:
         return 0;
     case ActivityKind::pull_request:
         return 1;
@@ -165,7 +166,8 @@ enum class FailureAge {
     switch (activity_category) {
     case ActivityCategory::workflows:
         return kind == ActivityKind::failed_job || kind == ActivityKind::failed_run ||
-               kind == ActivityKind::running_job || kind == ActivityKind::running_run;
+               kind == ActivityKind::running_job || kind == ActivityKind::running_run ||
+               kind == ActivityKind::completed_run;
     case ActivityCategory::pull_requests:
         return kind == ActivityKind::pull_request;
     case ActivityCategory::issues:
@@ -284,7 +286,7 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
     std::vector<ActivityItem> items;
     items.reserve(snapshot.jobs.size() + snapshot.workflow_runs.size() +
                   snapshot.pull_requests.size() + snapshot.recent_closed_pull_requests.size() +
-                  snapshot.issues.size());
+                  snapshot.issues.size() + snapshot.recent_closed_issues.size());
 
     for (const auto& job : snapshot.jobs) {
         if (is_active(job)) {
@@ -341,6 +343,14 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
             item.status = run.status;
             item.conclusion = run.conclusion;
             items.push_back(std::move(item));
+        } else if (run.status == RunStatus::completed) {
+            auto item =
+                base_item(ActivityKind::completed_run, ActivityPriority::normal,
+                          "completed_workflow", run.repository, run.id, run.updated_at, run.url);
+            item.name = run.name;
+            item.status = run.status;
+            item.conclusion = run.conclusion;
+            items.push_back(std::move(item));
         }
     }
 
@@ -363,7 +373,15 @@ std::vector<ActivityItem> build_activity_items(const Snapshot& snapshot) {
     }
 
     for (const auto& issue : snapshot.issues) {
-        auto item = base_item(ActivityKind::issue, ActivityPriority::normal, "open_issue",
+        auto item = base_item(ActivityKind::issue, ActivityPriority::high, "open_issue",
+                              issue.repository, issue.id, issue.updated_at, issue.url);
+        item.number = issue.number;
+        item.title = issue.title;
+        items.push_back(std::move(item));
+    }
+
+    for (const auto& issue : snapshot.recent_closed_issues) {
+        auto item = base_item(ActivityKind::issue, ActivityPriority::normal, "recent_closed_issue",
                               issue.repository, issue.id, issue.updated_at, issue.url);
         item.number = issue.number;
         item.title = issue.title;

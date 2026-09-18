@@ -700,6 +700,36 @@ std::vector<Issue> GitHubClient::fetch_open_issues(const RepositoryRef& reposito
                              "GitHub issues pagination exceeded the safety limit");
 }
 
+std::vector<Issue> GitHubClient::fetch_recent_closed_issues(const RepositoryRef& repository,
+                                                            std::size_t limit) const {
+    if (limit == 0 || limit > 100) {
+        throw std::invalid_argument("closed issue activity limit must be between 1 and 100");
+    }
+
+    // The issues endpoint also returns pull requests. Fetch one bounded page
+    // at the maximum page size so PR entries do not consume the requested
+    // closed-issue preview slots after normalization.
+    constexpr std::size_t page_size = 100;
+    const auto path =
+        "/repos/" + repository.full_name() +
+        "/issues?state=closed&sort=updated&direction=desc&per_page=" + std::to_string(page_size) +
+        "&page=1";
+    const auto response = get(path);
+    const auto payload = parse_json(response.body);
+
+    try {
+        auto issues = parse_issue_page(payload, repository);
+        if (issues.size() > limit) {
+            issues.resize(limit);
+        }
+        return issues;
+    } catch (const PayloadShapeError& error) {
+        throw GitHubRequestError(GitHubErrorKind::semantic, std::nullopt,
+                                 "GitHub closed issues payload has invalid shape: " +
+                                     std::string{error.what()});
+    }
+}
+
 std::vector<PullRequest>
 GitHubClient::fetch_open_pull_requests(const RepositoryRef& repository) const {
     constexpr std::size_t page_size = 100;

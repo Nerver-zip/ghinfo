@@ -119,7 +119,7 @@ borders/dividers to `#45475A`. For dynamic card colors, use this formula in
 the Text Color property:
 
 ```text
-$if(gv(ghinfo)="","#6C7086",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_run","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_job","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="running_job","#A6E3A1",if(tc(json,gv(ghinfo),".activity.items[0].kind")="pull_request","#CBA6F7","#F9E2AF")))))$
+$if(gv(ghinfo)="","#6C7086",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_run","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="failed_job","#F38BA8",if(tc(json,gv(ghinfo),".activity.items[0].kind")="running_job","#A6E3A1",if(tc(json,gv(ghinfo),".activity.items[0].kind")="running_run","#A6E3A1",if(tc(json,gv(ghinfo),".activity.items[0].kind")="completed_run","#89B4FA",if(tc(json,gv(ghinfo),".activity.items[0].kind")="pull_request","#CBA6F7","#F9E2AF")))))))$
 ```
 
 Replace `[0]` with `[1]` and `[2]` for the other cards. The
@@ -133,11 +133,14 @@ contents, change that action to store the response body before parsing.
 The preset uses `/v1/activity/items`, which omits the larger compatibility
 groups and keeps repeated JSON parsing during widget rendering small.
 
-The API returns items in priority and recency order. The preset includes the
-font needed for the widget icons.
+The API returns each category with active/open items first and recent
+closed/completed items filling the remaining slots. The preset includes the
+font needed for the widget icons and recognizes running, failed, and completed
+workflow records.
 
-Pull-request cards show `open pull request` or `closed pull request` according
-to the state returned by `ghinfo`.
+Pull-request cards show `open pull request` or `closed pull request`, and issue
+cards show `open issue` or `closed issue`, according to the signals returned by
+`ghinfo`.
 
 ## Empty-global troubleshooting
 

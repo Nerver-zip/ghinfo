@@ -46,9 +46,9 @@ separately by `GHINFO_JOB_RUN_HISTORY`, as defined in ADR-0003.
 
 Eligible items are partitioned into:
 
-1. jobs and workflows;
-2. open pull requests;
-3. open issues.
+1. workflows (active, failed, and completed) and jobs;
+2. pull requests (open, then recent closed);
+3. issues (open, then recent closed).
 
 Each partition keeps the global deterministic ordering. For limits 1 and 2,
 the best global items are selected. For limits at least 3, the selector first

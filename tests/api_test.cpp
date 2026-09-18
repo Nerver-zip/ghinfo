@@ -317,9 +317,9 @@ TEST(ApiTest, ActivityGroupsOnlyObjectiveSnapshotState) {
     EXPECT_EQ(body.at("activity").at("items").at(0).at("kind"), "running_run");
     EXPECT_EQ(body.at("activity").at("items").at(1).at("kind"), "running_job");
     EXPECT_EQ(body.at("activity").at("items").at(1).at("name"), "pending-check");
-    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "pull_request");
-    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "failed_run");
-    EXPECT_EQ(body.at("activity").at("items").at(4).at("kind"), "failed_job");
+    EXPECT_EQ(body.at("activity").at("items").at(2).at("kind"), "issue");
+    EXPECT_EQ(body.at("activity").at("items").at(3).at("kind"), "pull_request");
+    EXPECT_EQ(body.at("activity").at("items").at(4).at("kind"), "failed_run");
     EXPECT_FALSE(body.at("activity").contains("priority"));
     EXPECT_FALSE(body.at("activity").contains("score"));
 }
@@ -341,7 +341,7 @@ TEST(ApiTest, PrioritizedActivityMatchesGoldenAndRepeatedReads) {
     const auto limited = nlohmann::json::parse(first.body);
     ASSERT_EQ(limited.at("activity").at("items").size(), 2U);
     EXPECT_EQ(limited.at("activity").at("items").at(0).at("kind"), "running_run");
-    EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "pull_request");
+    EXPECT_EQ(limited.at("activity").at("items").at(1).at("kind"), "issue");
 
     store.record_poll_failure("2026-08-26T20:46:31Z", "transport", "2026-08-26T20:47:31Z");
     const auto stale = nlohmann::json::parse(ghinfo::make_activity_response(store, 2).body);
@@ -379,6 +379,34 @@ TEST(ApiTest, ActivityCategoryFiltersItemsWithoutChangingGroupedData) {
     EXPECT_EQ(workflows.at("activity").at("pullRequests").size(), 1U);
     EXPECT_EQ(pull_requests.at("activity").at("runningRuns").size(), 1U);
     EXPECT_EQ(issues.at("activity").at("failedRuns").size(), 1U);
+}
+
+TEST(ApiTest, SerializesCompletedWorkflowActivityItems) {
+    auto snapshot = std::make_shared<ghinfo::Snapshot>();
+    snapshot->generation = 9;
+    snapshot->generated_at = "2026-08-26T20:45:31Z";
+    snapshot->last_successful_poll = snapshot->generated_at;
+    snapshot->workflow_runs = {
+        ghinfo::WorkflowRun{3009, "owner/repo", "Release", ghinfo::RunStatus::completed,
+                            ghinfo::Conclusion::success, "main", "sha", "push",
+                            "2026-08-26T20:00:00Z", "2026-08-26T20:01:00Z", "run-3009"},
+    };
+    snapshot->activity_items = ghinfo::build_activity_items(*snapshot);
+
+    ghinfo::SnapshotStore store;
+    store.publish(snapshot);
+    store.record_poll_success(snapshot->generated_at);
+
+    const auto body = nlohmann::json::parse(
+        ghinfo::make_activity_response(store, 3, ghinfo::ActivityCategory::workflows).body);
+    ASSERT_EQ(body.at("activity").at("items").size(), 1U);
+    const auto& item = body.at("activity").at("items").at(0);
+    EXPECT_EQ(item.at("kind"), "completed_run");
+    EXPECT_EQ(item.at("priority"), "normal");
+    EXPECT_EQ(item.at("signals").at(0), "completed_workflow");
+    EXPECT_EQ(item.at("name"), "Release");
+    EXPECT_EQ(item.at("status"), "completed");
+    EXPECT_EQ(item.at("conclusion"), "success");
 }
 
 TEST(ApiTest, ClosedPullRequestFallbackStaysOnlyInPrioritizedActivity) {
