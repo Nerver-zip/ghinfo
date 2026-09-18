@@ -138,16 +138,33 @@
           "shape_width": 714.0,
           "shape_height": 430.0,
           "shape_corners": 10.0,
-          "paint_color": "#A7000000"
+          "paint_color": "#A7000000",
+          "internal_toggles": {
+            "shape_width": 10,
+            "shape_height": 10
+          },
+          "internal_formulas": {
+            "shape_width": "$si(rwidth)$",
+            "shape_height": "$mu(min,si(rheight),430)$"
+          },
+          "position_anchor": "TOPLEFT",
+          "position_offset_x": 0.0,
+          "position_offset_y": 0.0
         },
         {
           "internal_type": "TextModule",
-          "text_expression": "$if(gv(ghinfo)=\"\",\"[c=#6C7086]Waiting for update...[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\", \"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[0].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[0].title\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[0].title\"),tc(json,gv(ghinfo),\".activity.items[0].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[0].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[0].status\"),tc(json,gv(ghinfo),\".activity.items[0].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[0].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[0].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[1].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[1].title\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[1].title\"),tc(json,gv(ghinfo),\".activity.items[1].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[1].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[1].status\"),tc(json,gv(ghinfo),\".activity.items[1].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[1].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[1].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[2].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[2].title\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[2].title\"),tc(json,gv(ghinfo),\".activity.items[2].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[2].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[2].status\"),tc(json,gv(ghinfo),\".activity.items[2].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[2].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[2].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╰────────────────────────────────────────────\"))$[/c]",
+          "text_expression": "$if(gv(ghinfo)=\"\",\"[c=#6C7086]Waiting for update...[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\", \"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[0].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[0].title\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[0].title\"),tc(json,gv(ghinfo),\".activity.items[0].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[0].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[0].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[0].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[0].status\"),tc(json,gv(ghinfo),\".activity.items[0].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[0].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[0].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[0].id\")=\"\",\"\",tc(rpad, \"╰\", mu(max,20,mu(floor,(si(rwidth)-64)/11.8)), \"─\")))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[1].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[1].title\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[1].title\"),tc(json,gv(ghinfo),\".activity.items[1].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[1].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[1].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[1].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[1].status\"),tc(json,gv(ghinfo),\".activity.items[1].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[1].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[1].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[1].id\")=\"\",\"\",tc(rpad, \"╰\", mu(max,20,mu(floor,(si(rwidth)-64)/11.8)), \"─\")))$[/c]\n\n$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"╭─ \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_run\",\"[c=#F38BA8]  WORKFLOW FAILED[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"failed_job\",\"  JOB FAILED\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",\"[c=#A6E3A1]  WORKFLOW RUNNING[/c]\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",\"[c=#CBA6F7]  PULL REQUEST[/c]\",\"[c=#F9E2AF]  ISSUE[/c]\"))))))$\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, tc(json,gv(ghinfo),\".activity.items[2].repository\"), mu(max, 16, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#CDD6F4]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(ell, if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",tc(json,gv(ghinfo),\".activity.items[2].title\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",tc(json,gv(ghinfo),\".activity.items[2].title\"),tc(json,gv(ghinfo),\".activity.items[2].name\"))), mu(max, 20, mu(floor, (si(rwidth) - 64) / 11.8)))))$[/c]\n[c=#A6ADC8]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",\"│  \"+tc(json,gv(ghinfo),\".activity.items[2].priority\")+\" · \"+if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"pull_request\",if(tc(json,gv(ghinfo),\".activity.items[2].signals[0]\")=\"recent_closed_pull_request\",\"closed pull request\",\"open pull request\"),if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"issue\",\"open issue\",if(tc(json,gv(ghinfo),\".activity.items[2].kind\")=\"running_job\",tc(json,gv(ghinfo),\".activity.items[2].status\"),tc(json,gv(ghinfo),\".activity.items[2].status\")+\" · \"+tc(json,gv(ghinfo),\".activity.items[2].conclusion\")))+\"  ·  \"+tc(json,gv(ghinfo),\".activity.items[2].updatedAt\"))))$[/c]\n[c=#45475A]$if(gv(ghinfo)=\"\",\"\",if(tc(json,gv(ghinfo),\".activity.items[2].id\")=\"\",\"\",tc(rpad, \"╰\", mu(max,20,mu(floor,(si(rwidth)-64)/11.8)), \"─\")))$[/c]",
           "text_family": "kfile://org.kustom.provider/fonts/FiraCodeNerdFontMono.ttf",
           "text_size": 17.0,
           "position_offset_x": 5.0,
           "position_offset_y": 10.0,
-          "position_anchor": "TOPLEFT"
+          "position_anchor": "TOPLEFT",
+          "internal_toggles": {
+            "position_offset_x": 10
+          },
+          "internal_formulas": {
+            "position_offset_x": "$mu(max,8,mu(min,16,si(rwidth)/70))$"
+          }
         },
         {
           "internal_type": "StackLayerModule",
@@ -173,7 +190,15 @@
                   "shape_corners": 12.0,
                   "paint_color": "#9AD20F39",
                   "internal_title": "ButtonBackground",
-                  "shape_type": "RECT"
+                  "shape_type": "RECT",
+                  "internal_toggles": {
+                    "shape_width": 10,
+                    "shape_height": 10
+                  },
+                  "internal_formulas": {
+                    "shape_width": "$mu(max,40,mu(min,132,(si(rwidth)-48)/4))$",
+                    "shape_height": "$mu(max,44,mu(min,60,si(rheight)/7.2))$"
+                  }
                 },
                 {
                   "internal_type": "TextModule",
@@ -183,7 +208,13 @@
                   "internal_title": "ButtonIcon",
                   "position_anchor": "CENTER",
                   "position_offset_x": 0.0,
-                  "position_offset_y": 0.0
+                  "position_offset_y": 0.0,
+                  "internal_toggles": {
+                    "text_size": 10
+                  },
+                  "internal_formulas": {
+                    "text_size": "$mu(max,24,mu(min,48,si(rheight)/9))$"
+                  }
                 }
               ]
             },
@@ -205,7 +236,15 @@
                   "shape_corners": 12.0,
                   "paint_color": "#9BE64553",
                   "internal_title": "ButtonBackground",
-                  "shape_type": "RECT"
+                  "shape_type": "RECT",
+                  "internal_toggles": {
+                    "shape_width": 10,
+                    "shape_height": 10
+                  },
+                  "internal_formulas": {
+                    "shape_width": "$mu(max,40,mu(min,132,(si(rwidth)-48)/4))$",
+                    "shape_height": "$mu(max,44,mu(min,60,si(rheight)/7.2))$"
+                  }
                 },
                 {
                   "internal_type": "TextModule",
@@ -215,7 +254,13 @@
                   "internal_title": "ButtonIcon",
                   "position_anchor": "CENTER",
                   "position_offset_x": 0.0,
-                  "position_offset_y": 2.0
+                  "position_offset_y": 2.0,
+                  "internal_toggles": {
+                    "text_size": 10
+                  },
+                  "internal_formulas": {
+                    "text_size": "$mu(max,24,mu(min,48,si(rheight)/9))$"
+                  }
                 }
               ]
             },
@@ -237,7 +282,15 @@
                   "shape_corners": 12.0,
                   "paint_color": "#98FE640B",
                   "internal_title": "ButtonBackground",
-                  "shape_type": "RECT"
+                  "shape_type": "RECT",
+                  "internal_toggles": {
+                    "shape_width": 10,
+                    "shape_height": 10
+                  },
+                  "internal_formulas": {
+                    "shape_width": "$mu(max,40,mu(min,132,(si(rwidth)-48)/4))$",
+                    "shape_height": "$mu(max,44,mu(min,60,si(rheight)/7.2))$"
+                  }
                 },
                 {
                   "internal_type": "TextModule",
@@ -247,7 +300,13 @@
                   "internal_title": "ButtonIcon",
                   "position_anchor": "CENTER",
                   "position_offset_x": 0.0,
-                  "position_offset_y": -1.0
+                  "position_offset_y": -1.0,
+                  "internal_toggles": {
+                    "text_size": 10
+                  },
+                  "internal_formulas": {
+                    "text_size": "$mu(max,24,mu(min,48,si(rheight)/9))$"
+                  }
                 }
               ]
             },
@@ -269,7 +328,15 @@
                   "shape_corners": 12.0,
                   "paint_color": "#9BDF8E1D",
                   "internal_title": "ButtonBackground",
-                  "shape_type": "RECT"
+                  "shape_type": "RECT",
+                  "internal_toggles": {
+                    "shape_width": 10,
+                    "shape_height": 10
+                  },
+                  "internal_formulas": {
+                    "shape_width": "$mu(max,40,mu(min,132,(si(rwidth)-48)/4))$",
+                    "shape_height": "$mu(max,44,mu(min,60,si(rheight)/7.2))$"
+                  }
                 },
                 {
                   "internal_type": "TextModule",
@@ -279,7 +346,13 @@
                   "internal_title": "ButtonIcon",
                   "position_anchor": "CENTER",
                   "position_offset_x": 0.0,
-                  "position_offset_y": 0.0
+                  "position_offset_y": 0.0,
+                  "internal_toggles": {
+                    "text_size": 10
+                  },
+                  "internal_formulas": {
+                    "text_size": "$mu(max,24,mu(min,48,si(rheight)/9))$"
+                  }
                 }
               ]
             }
@@ -287,7 +360,13 @@
           "position_padding_bottom": 8.0,
           "position_anchor": "BOTTOM",
           "position_offset_x": 0.0,
-          "position_offset_y": 8.0
+          "position_offset_y": 8.0,
+          "internal_toggles": {
+            "config_margin": 10
+          },
+          "internal_formulas": {
+            "config_margin": "$mu(max,4,mu(min,8,si(rwidth)/90))$"
+          }
         }
       ]
     }

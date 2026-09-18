@@ -105,13 +105,27 @@ class KustomSetupTests(unittest.TestCase):
     def test_bottom_nav_is_a_single_horizontal_footer_row(self) -> None:
         preset = load_template_preset(TEMPLATE_KWGT)
         root = preset["preset_root"]
+        background = root["viewgroup_items"][0]
+        self.assertEqual(background["shape_width"], 714.0)
+        self.assertEqual(background["shape_height"], 430.0)
+        self.assertEqual(background["position_anchor"], "TOPLEFT")
+        self.assertEqual(background["position_offset_x"], 0.0)
+        self.assertEqual(background["position_offset_y"], 0.0)
+        self.assertEqual(background["internal_toggles"], {"shape_width": 10, "shape_height": 10})
+        self.assertEqual(background["internal_formulas"]["shape_width"], "$si(rwidth)$")
+        self.assertEqual(background["internal_formulas"]["shape_height"], "$mu(min,si(rheight),430)$")
         content = next(item for item in root["viewgroup_items"] if item.get("internal_type") == "TextModule")
         self.assertEqual(content["text_size"], 17.0)
         self.assertEqual(content["text_expression"].count("\n\n"), 2)
         expression = content["text_expression"]
         self.assertIn("Waiting for update...", expression)
         self.assertEqual(expression.count("tc(ell"), 6)
-        self.assertEqual(expression.count("si(rwidth)"), 6)
+        self.assertEqual(expression.count("si(rwidth)"), 9)
+        self.assertEqual(expression.count("tc(rpad"), 3)
+        self.assertEqual(
+            content["internal_formulas"]["position_offset_x"],
+            "$mu(max,8,mu(min,16,si(rwidth)/70))$",
+        )
         for index in range(3):
             repository = f'tc(json,gv(ghinfo),".activity.items[{index}].repository")'
             self.assertIn(
@@ -136,6 +150,11 @@ class KustomSetupTests(unittest.TestCase):
 
         self.assertEqual(nav["internal_type"], "StackLayerModule")
         self.assertEqual(nav["config_stacking"], "HORIZONTAL_CENTER")
+        self.assertEqual(nav["config_margin"], 8.0)
+        self.assertEqual(
+            nav["internal_formulas"]["config_margin"],
+            "$mu(max,4,mu(min,8,si(rwidth)/90))$",
+        )
         self.assertEqual(nav["position_anchor"], "BOTTOM")
         self.assertEqual(nav["position_offset_y"], 8.0)
         self.assertEqual(nav["position_padding_bottom"], 8.0)
@@ -163,8 +182,20 @@ class KustomSetupTests(unittest.TestCase):
                 self.assertEqual(shape["shape_width"], 132.0)
                 self.assertEqual(shape["shape_height"], 60.0)
                 self.assertEqual(shape["shape_corners"], 12.0)
+                self.assertEqual(
+                    shape["internal_formulas"]["shape_width"],
+                    "$mu(max,40,mu(min,132,(si(rwidth)-48)/4))$",
+                )
+                self.assertEqual(
+                    shape["internal_formulas"]["shape_height"],
+                    "$mu(max,44,mu(min,60,si(rheight)/7.2))$",
+                )
                 self.assertEqual(icon["position_anchor"], "CENTER")
                 self.assertEqual(icon["text_size"], 48.0)
+                self.assertEqual(
+                    icon["internal_formulas"]["text_size"],
+                    "$mu(max,24,mu(min,48,si(rheight)/9))$",
+                )
                 self.assertFalse(icon["text_expression"].endswith((" ", "\t", "\n")))
                 self.assertEqual(icon["position_offset_y"], expected_offsets[item["internal_title"]])
 

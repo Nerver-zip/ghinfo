@@ -224,7 +224,10 @@ are documented in [`docs/API.md`](docs/API.md).
 The repository ships a ready-to-import Premium preset and a Free-compatible
 clipboard workflow. The widget uses the compact `/v1/activity/items` endpoint,
 four activity Flows, responsive text truncation, and four rectangular action
-buttons anchored at the bottom.
+buttons anchored at the bottom. Its frame and controls adapt to the available
+widget width and height; the background remains aligned to the widget's
+top-left and covers the full cell so filtered views do not separate the
+content from the action row.
 
 ### Premium import
 

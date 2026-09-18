@@ -70,7 +70,11 @@ and has no Flows.
 
 Repository and title/name fields use Kustom's `tc(ell, ...)` formulas with
 limits derived from `si(rwidth)`. The API still receives and stores the full
-snapshot; only the rendered text is shortened when the widget is narrower.
+snapshot; only the rendered text is shortened when the widget is narrower. The
+The background is anchored to the widget's top-left and covers the available
+cell height, including the bottom action row. Button widths, gaps, icon sizes,
+and the text inset adapt to `si(rwidth)`/`si(rheight)` so the same component
+remains usable in portrait, landscape, and resized cells.
 
 Useful non-interactive examples:
 

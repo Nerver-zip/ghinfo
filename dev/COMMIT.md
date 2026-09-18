@@ -136,3 +136,23 @@ the standalone font hash matches the copy embedded in the `.kwgt`,
 `git diff --check` passes, and Gitleaks finds no secrets.
 
 Co-authored-by: Codex <noreply@openai.com>
+
+## fix(widget): make Kustom layout responsive across sizes
+
+Make the native Kustom frame width-aware while keeping the background aligned
+to the top-left of the full widget cell. This keeps filtered views with one or
+two items behind the bottom action row instead of leaving the content outside
+the background. Dividers use a dynamic `tc(rpad, ...)` formula; button widths,
+gaps, heights, icon sizes, and text inset adapt to the widget's
+`si(rwidth)`/`si(rheight)` values. Apply the same divider formula to the manual
+Kustom examples and regenerate the tracked clipboard clip.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 8 Python tests;
+responsive preset and clip structure checks pass; the live API returns HTTP
+200 with a fresh snapshot (one current open PR); `git diff --check` passes;
+Gitleaks finds no secrets. Device-side re-import with three PRs and
+portrait/landscape visual verification remain the final acceptance boundary.
+
+The public API and snapshot schema are unchanged.
+
+Co-authored-by: Codex <noreply@openai.com>
