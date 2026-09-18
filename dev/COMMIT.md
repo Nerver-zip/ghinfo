@@ -156,3 +156,17 @@ portrait/landscape visual verification remain the final acceptance boundary.
 The public API and snapshot schema are unchanged.
 
 Co-authored-by: Codex <noreply@openai.com>
+
+## test(widget): cover single-item activity rendering
+
+Add a deterministic one-item activity payload regression for the Kustom preset.
+The test confirms that the first card is populated, missing item slots stay
+safe without `null`/placeholder text, and the four-button bottom navigation
+remains independently anchored. Document the expected one-item behavior for
+device-side checks before the mixed open/closed PR and issue projection change.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 9 Python tests;
+`git diff --check` passes. The public API, snapshot schema, and native preset
+are unchanged.
+
+Co-authored-by: Codex <noreply@openai.com>

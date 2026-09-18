@@ -76,6 +76,11 @@ cell height, including the bottom action row. Button widths, gaps, icon sizes,
 and the text inset adapt to `si(rwidth)`/`si(rheight)` so the same component
 remains usable in portrait, landscape, and resized cells.
 
+If the endpoint contains only one activity item, the first card is rendered and
+the remaining card slots stay empty; the bottom action row remains anchored
+independently. This keeps a one-item snapshot visible during testing instead
+of making additional API items appear necessary for the layout to hold.
+
 Useful non-interactive examples:
 
 ```bash

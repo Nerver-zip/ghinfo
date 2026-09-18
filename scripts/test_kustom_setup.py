@@ -207,6 +207,50 @@ class KustomSetupTests(unittest.TestCase):
             )
         )
 
+    def test_single_activity_item_keeps_empty_slots_safe(self) -> None:
+        one_item_payload = {
+            "schemaVersion": 1,
+            "generation": 1,
+            "generatedAt": "2026-09-18T12:00:00Z",
+            "stale": False,
+            "activity": {
+                "items": [
+                    {
+                        "id": 4514675030,
+                        "kind": "pull_request",
+                        "number": 12,
+                        "priority": "high",
+                        "repository": "owner/repo",
+                        "signals": ["open_pull_request"],
+                        "title": "One pull request",
+                        "updatedAt": "2026-09-18T11:00:00Z",
+                        "url": "https://github.com/owner/repo/pull/12",
+                    }
+                ]
+            },
+        }
+        preset = customize_preset(
+            load_template_preset(TEMPLATE_KWGT),
+            "http://widget.example:8080",
+            5,
+            initial_payload=one_item_payload,
+        )
+        root = preset["preset_root"]
+        stored_payload = json.loads(root["globals_list"]["ghinfo"]["value"])
+        self.assertEqual(stored_payload, one_item_payload)
+
+        content = next(item for item in root["viewgroup_items"] if item.get("internal_type") == "TextModule")
+        expression = content["text_expression"]
+        self.assertIn('tc(json,gv(ghinfo),".activity.items[0].id")', expression)
+        for index in (1, 2):
+            self.assertIn(f'tc(json,gv(ghinfo),".activity.items[{index}].id")', expression)
+        self.assertNotIn("null", expression.lower())
+        self.assertNotIn("none", expression.lower())
+
+        nav = next(item for item in root["viewgroup_items"] if item.get("internal_title") == "BottomNav")
+        self.assertEqual(nav["position_anchor"], "BOTTOM")
+        self.assertEqual(len(nav["viewgroup_items"]), 4)
+
     def test_artifacts_are_valid_and_package_keeps_font(self) -> None:
         preset = customize_preset(load_template_preset(TEMPLATE_KWGT), "http://widget.example:8080", 5)
         with tempfile.TemporaryDirectory() as directory:
