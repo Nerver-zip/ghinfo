@@ -49,18 +49,18 @@ def normalize_base_url(value: str) -> str:
 
     candidate = value.strip()
     if any(character.isspace() for character in candidate):
-        raise ValueError("a URL não pode conter espaços")
+        raise ValueError("URL must not contain spaces")
     parsed = urllib.parse.urlsplit(candidate)
     if parsed.scheme not in {"http", "https"} or not parsed.netloc:
-        raise ValueError("use uma URL http:// ou https:// com host")
+        raise ValueError("use an http:// or https:// URL with a host")
     if parsed.username or parsed.password:
-        raise ValueError("a URL não pode conter usuário ou senha")
+        raise ValueError("URL must not contain a username or password")
     if parsed.query or parsed.fragment:
-        raise ValueError("a URL base não pode conter query string ou fragmento")
+        raise ValueError("base URL must not contain a query string or fragment")
     try:
         parsed.port
     except ValueError as exc:
-        raise ValueError("a porta da URL não é válida") from exc
+        raise ValueError("URL port is invalid") from exc
     return candidate.rstrip("/")
 
 
@@ -70,9 +70,9 @@ def validate_refresh_minutes(value: Any) -> int:
     try:
         minutes = int(value)
     except (TypeError, ValueError) as exc:
-        raise ValueError("o intervalo deve ser um número inteiro") from exc
+        raise ValueError("interval must be an integer") from exc
     if not 1 <= minutes <= 59:
-        raise ValueError("o intervalo deve estar entre 1 e 59 minutos")
+        raise ValueError("interval must be between 1 and 59 minutes")
     return minutes
 
 
@@ -92,17 +92,17 @@ def load_template_preset(template_path: Path = TEMPLATE_KWGT) -> dict[str, Any]:
     """Read the native preset tree from the checked-in KWGT archive."""
 
     if not template_path.is_file():
-        raise FileNotFoundError(f"template não encontrado: {template_path}")
+        raise FileNotFoundError(f"template not found: {template_path}")
     with zipfile.ZipFile(template_path) as archive:
         try:
             preset = json.loads(archive.read("preset.json"))
         except KeyError as exc:
-            raise ValueError("o template não contém preset.json") from exc
+            raise ValueError("template does not contain preset.json") from exc
     root = preset.get("preset_root")
     if not isinstance(root, dict) or not isinstance(root.get("internal_flows"), list):
-        raise ValueError("preset.json não contém uma árvore Kustom válida")
+        raise ValueError("preset.json does not contain a valid Kustom tree")
     if not isinstance(root.get("globals_list"), dict) or not isinstance(root.get("viewgroup_items"), list):
-        raise ValueError("preset.json não contém globals/layout válidos")
+        raise ValueError("preset.json does not contain valid globals/layout")
     return preset
 
 
@@ -130,17 +130,17 @@ def customize_preset(
         seen_flows.add(name)
         wget_actions = [action for action in flow.get("a", []) if action.get("type") == "A_WGET"]
         if len(wget_actions) != 1:
-            raise ValueError(f"Flow {name!r} deve conter exatamente uma ação WebGet")
+            raise ValueError(f"Flow {name!r} must contain exactly one WebGet action")
         wget_actions[0].setdefault("params", {})["uri"] = normalized_url + FLOW_PATHS[name]
         if name == "ghinfo":
             cron_triggers = [trigger for trigger in flow.get("t", []) if trigger.get("type") == "T_CRON"]
             if len(cron_triggers) != 1:
-                raise ValueError("o Flow ghinfo deve conter exatamente um trigger cron")
+                raise ValueError("the ghinfo Flow must contain exactly one cron trigger")
             cron_triggers[0].setdefault("params", {})["cron_string"] = f"*/{interval} * * * *"
 
     missing = set(FLOW_PATHS) - seen_flows
     if missing:
-        raise ValueError("Flows ausentes no template: " + ", ".join(sorted(missing)))
+        raise ValueError("Missing Flows in template: " + ", ".join(sorted(missing)))
     return customized
 
 
@@ -196,7 +196,7 @@ def write_kwgt(
     """Copy the template archive while replacing only its preset JSON."""
 
     if output_path.resolve() == template_path.resolve():
-        raise ValueError("o arquivo de saída não pode sobrescrever o template")
+        raise ValueError("output file must not overwrite the template")
     output_path.parent.mkdir(parents=True, exist_ok=True)
     preset_bytes = (json.dumps(preset, indent=2, ensure_ascii=False) + "\n").encode("utf-8")
     with zipfile.ZipFile(template_path) as source, zipfile.ZipFile(
@@ -222,7 +222,7 @@ def write_artifacts(
         "kwgt": output_dir / "ghinfo-kustom-widget.kwgt",
     }
     if paths["kwgt"].resolve() == template_path.resolve():
-        raise ValueError("o diretório de saída não pode ser o diretório do template")
+        raise ValueError("output directory must not be the template directory")
     _write_text(paths["clip"], render_clip(preset))
     _write_text(paths["loose_clip"], render_loose_clip(preset))
     write_kwgt(preset, paths["kwgt"], template_path=template_path)
@@ -242,9 +242,9 @@ def fetch_initial_activity(base_url: str, timeout: float = 5.0) -> tuple[Optiona
     except urllib.error.HTTPError as exc:
         return None, f"HTTP {exc.code}"
     except (OSError, TimeoutError, ValueError, json.JSONDecodeError):
-        return None, "endpoint indisponível ou resposta inválida"
+        return None, "endpoint unavailable or response invalid"
     if not is_activity_payload(payload):
-        return None, "resposta sem activity.items"
+        return None, "response does not contain activity.items"
     return payload, "ok"
 
 

@@ -135,7 +135,7 @@ time. Do not call `wg(...)` against an empty global. Use this temporary Text
 formula while testing:
 
 ```text
-$if(gv(ghinfo)="","Aguardando atualização...",tc(json,gv(ghinfo),".activity.items[0].repository"))$
+$if(gv(ghinfo)="","Waiting for update...",tc(json,gv(ghinfo),".activity.items[0].repository"))$
 ```
 
 Run the Flow manually from its test/play control. If the global remains empty,

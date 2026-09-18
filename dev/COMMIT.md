@@ -108,3 +108,17 @@ The public API/schema and runtime behavior are unchanged.
 Validation: `./scripts/validate.sh` passes 70 C++ tests and 7 Python tests;
 `git diff --check` passes; Gitleaks finds no secrets; local README links and
 the PNG decode successfully.
+
+## docs(i18n): translate user-facing setup and widget text
+
+Translate the Kustom setup wizard's prompts, help text, status messages, and
+validation errors to English. Align the manual Kustom formulas and generated
+`.clip`/`.kwgt` fallback text with the English CLI so every user-facing
+workflow uses one language. The API, snapshot schema, and runtime behavior are
+unchanged.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 7 Python tests;
+`git diff --check` passes; Gitleaks finds no secrets; repository text and
+generated preset scans contain no Portuguese user-facing strings.
+
+Co-authored-by: Codex <noreply@openai.com>

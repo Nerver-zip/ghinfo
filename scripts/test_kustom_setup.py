@@ -98,6 +98,7 @@ class KustomSetupTests(unittest.TestCase):
         self.assertEqual(component["internal_title"], "ghinfo Activity Widget")
         self.assertIn("internal_flows", component)
         self.assertIn("viewgroup_items", component)
+        self.assertIn("Waiting for update...", content)
         self.assertNotIn("Authorization", content)
         self.assertNotIn("github_pat_", content)
 
@@ -108,6 +109,7 @@ class KustomSetupTests(unittest.TestCase):
         self.assertEqual(content["text_size"], 17.0)
         self.assertEqual(content["text_expression"].count("\n\n"), 2)
         expression = content["text_expression"]
+        self.assertIn("Waiting for update...", expression)
         self.assertEqual(expression.count("tc(ell"), 6)
         self.assertEqual(expression.count("si(rwidth)"), 6)
         for index in range(3):
