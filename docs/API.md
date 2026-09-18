@@ -66,7 +66,7 @@ Example:
 {
   "schemaVersion": 1,
   "service": "ghinfo",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "snapshotAvailable": true,
   "generation": 7,
   "generatedAt": "2026-08-26T20:45:31Z",

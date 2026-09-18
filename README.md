@@ -113,7 +113,9 @@ export GHINFO_BIND=127.0.0.1
 The binary listens on `127.0.0.1:8080` when no bind/port overrides are set. The
 example `.env` uses `0.0.0.0` so the same values work with Compose; choose the
 bind address that matches your deployment. The first poll runs in the
-background; `/readyz` becomes ready after the first complete snapshot.
+background and may take a few minutes, depending on the configured repositories
+and GitHub response times. `/readyz` becomes ready after the first complete
+snapshot; data endpoints return `503` until then.
 
 Check the service from another terminal:
 

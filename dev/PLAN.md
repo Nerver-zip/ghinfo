@@ -5,7 +5,7 @@
 The implementation milestones through MVP-017, the prioritized activity
 projection, and its temporal/diversified follow-up are complete in the local
 checkout. The projection is additive, in-memory, read-only, and covered by
-the current API, snapshot, parser, and sanitizer tests. The `v0.3.0` tag is
+the current API, snapshot, parser, and sanitizer tests. The `v0.4.0` tag is
 the current release target; the rewritten main branch still requires external
 synchronization.
 
