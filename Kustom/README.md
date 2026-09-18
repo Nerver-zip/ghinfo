@@ -84,10 +84,12 @@ display. A failed probe does not stop artifact generation; the Flow fetches a
 fresh snapshot on the phone.
 
 The clipboard format carries the component tree, but not external font files.
-For the icons in the formulas, select/import `FiraCodeNerdFontMono.ttf` in
-Kustom. The Premium `.kwgt` output embeds that font automatically. If the
-font is unavailable, replace the icon glyphs with plain text to avoid missing
-glyph boxes.
+The repository includes the standalone
+[`FiraCodeNerdFontMono.ttf`](../assets/fonts/FiraCodeNerdFontMono.ttf). Copy it
+to the phone and select/import it in Kustom before pasting a Free `.clip`; the
+Premium `.kwgt` output embeds the font automatically. If the font is
+unavailable, replace the icon glyphs with plain text to avoid missing glyph
+boxes.
 
 ## Kustom setup
 

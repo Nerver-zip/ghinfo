@@ -231,7 +231,9 @@ buttons anchored at the bottom.
 Use [`assets/ghinfo-kustom-widget.kwgt`](assets/ghinfo-kustom-widget.kwgt),
 import it in KWGT, and change the WebGet URLs if the service is not reachable
 at the configured host. The package includes the required
-`FiraCodeNerdFontMono.ttf` glyph font.
+`FiraCodeNerdFontMono.ttf` glyph font. For Free/clipboard imports, download the
+standalone [`FiraCodeNerdFontMono.ttf`](assets/fonts/FiraCodeNerdFontMono.ttf)
+from this repository, copy it to the phone, and import/select it in KWGT.
 
 ### KWGT Free setup
 
@@ -265,9 +267,11 @@ save it. Inspect Flows inside the imported **ghinfo Activity Widget**
 Komponent; the root widget is not the Flow owner.
 
 > [!IMPORTANT]
-> The complete `.clip` references Nerd Font glyphs. Install/import
-> `FiraCodeNerdFontMono.ttf` in a Free setup, or replace the glyphs with plain
-> text. The `.kwgt` package already bundles the font.
+> The complete `.clip` references Nerd Font glyphs. Download the repository's
+> [`FiraCodeNerdFontMono.ttf`](assets/fonts/FiraCodeNerdFontMono.ttf), copy it
+> to the phone, and import/select it in a Free setup before pasting the clip.
+> Alternatively, replace the glyphs with plain text. The `.kwgt` package
+> already bundles the font.
 
 Use [`Kustom/README.md`](Kustom/README.md) for the full phone sequence,
 manual formulas, endpoint checks, and troubleshooting. Do not import the

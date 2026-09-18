@@ -194,6 +194,15 @@ class KustomSetupTests(unittest.TestCase):
                 self.assertEqual(json.loads(archive.read("preset.json")), preset)
                 self.assertEqual(archive.testzip(), None)
 
+    def test_standalone_font_matches_template(self) -> None:
+        repository_root = Path(__file__).resolve().parents[1]
+        standalone = repository_root / "assets" / "fonts" / "FiraCodeNerdFontMono.ttf"
+        self.assertTrue(standalone.is_file())
+        with zipfile.ZipFile(TEMPLATE_KWGT) as archive:
+            self.assertEqual(
+                standalone.read_bytes(), archive.read("fonts/FiraCodeNerdFontMono.ttf")
+            )
+
     def test_tracked_default_clip_is_regenerated_shape(self) -> None:
         expected = render_clip(
             customize_preset(

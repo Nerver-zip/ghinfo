@@ -122,3 +122,17 @@ Validation: `./scripts/validate.sh` passes 70 C++ tests and 7 Python tests;
 generated preset scans contain no Portuguese user-facing strings.
 
 Co-authored-by: Codex <noreply@openai.com>
+
+## docs(widget): bundle standalone Nerd Font asset
+
+Add the exact `FiraCodeNerdFontMono.ttf` used by the native Kustom preset at
+`assets/fonts/FiraCodeNerdFontMono.ttf`. Update the root and Kustom guides with
+a direct download link and Free/clipboard import instructions, so users do not
+need to locate the font separately. The Premium `.kwgt` package and public API
+remain unchanged.
+
+Validation: `./scripts/validate.sh` passes 70 C++ tests and 8 Python tests;
+the standalone font hash matches the copy embedded in the `.kwgt`,
+`git diff --check` passes, and Gitleaks finds no secrets.
+
+Co-authored-by: Codex <noreply@openai.com>
